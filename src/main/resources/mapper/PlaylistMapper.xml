@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.playlist.playlist.PlaylistMapper">
+
+    <insert id="insertPlaylist" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO playlist (member_id, spotify_playlist_id, name, prompt)
+        VALUES (#{memberId}, #{spotifyPlaylistId}, #{name}, #{prompt})
+    </insert>
+
+    <insert id="insertSong" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO song (spotify_track_id, spotify_track_uri, title, artist, album)
+        VALUES (#{spotifyTrackId}, #{spotifyTrackUri}, #{title}, #{artist}, #{album})
+        ON CONFLICT (spotify_track_id) DO NOTHING
+    </insert>
+
+    <insert id="insertPlaylistSong" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO playlist_song (playlist_id, song_id, position)
+        VALUES (#{playlistId}, #{songId}, #{position})
+    </insert>
+
+    <select id="findSongBySpotifyTrackId" resultType="com.example.playlist.Entity.Song">
+        SELECT id, spotify_track_id, spotify_track_uri, title, artist, album
+        FROM song
+        WHERE spotify_track_id = #{spotifyTrackId}
+    </select>
+
+    <select id="findByMemberId" resultType="com.example.playlist.Entity.Playlist">
+        SELECT id, member_id, spotify_playlist_id, name, prompt, created_at
+        FROM playlist
+        WHERE member_id = #{memberId}
+        ORDER BY created_at DESC
+    </select>
+
+</mapper>
