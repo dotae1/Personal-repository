@@ -46,3 +46,7 @@ gemini:
 swagger:
   server:
     url: ${SWAGGER_SERVER_URL:http://localhost:8080/api/v1}
+
+spotify:
+  client-id: ${SPOTIFY_CLIENT_ID}
+  client-secret: ${SPOTIFY_CLIENT_SECRET}
