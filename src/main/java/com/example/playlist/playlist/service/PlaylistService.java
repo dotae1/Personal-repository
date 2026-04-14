@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import reactor.core.publisher.Flux;
 
 @Service
 @RequiredArgsConstructor
@@ -22,9 +23,10 @@ public class PlaylistService {
     public PlaylistResponse createPlayList(GeminiRequest request) throws JsonProcessingException {
         GeminiResponse geminiResponse = geminiService.CreatePlaylist(request);
 
-        List<SpotifyTrack> tracks  = geminiResponse.getSongs().stream()
-                .map(song -> spotifyService.searchTrack(song.getArtist(), song.getTitle()))
-                .toList();
+        List<SpotifyTrack> tracks = Flux.fromIterable(geminiResponse.getSongs())
+                .flatMap(song -> spotifyService.searchTrack(song.getArtist(), song.getTitle()))
+                .collectList()
+                .block();
 
         return new PlaylistResponse(geminiResponse.getPlaylistTitle(), tracks);
     }
