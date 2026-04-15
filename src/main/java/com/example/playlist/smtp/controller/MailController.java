@@ -7,6 +7,7 @@ import com.example.playlist.smtp.dto.MailVerificationRequest;
 import com.example.playlist.smtp.exception.MailErrorCode;
 import com.example.playlist.smtp.exception.MailSuccessCode;
 import com.example.playlist.smtp.service.MailService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.mail.MessagingException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,10 @@ public class MailController {
 
     private final MailService mailService;
 
+    @Operation(
+            summary = "메일 전송",
+            description = "인증 메일을 전송하는 컨트롤러"
+    )
     @PostMapping("/send")
     public ResponseEntity<SuccessResponse> sendMail(@RequestBody @Valid MailRequest request) throws MessagingException {
         mailService.sendCertificationMail(request);
@@ -32,6 +37,10 @@ public class MailController {
                 .body(SuccessResponse.of(MailSuccessCode.MAIL_SUCCESS_SEND));
     }
 
+    @Operation(
+            summary = "메일 검증",
+            description = "이메일 인증을 위해 보낸 코드를 검증하는 컨트롤러"
+    )
     @PostMapping("/verify")
     public ResponseEntity<?> verifyCode(@RequestBody @Valid MailVerificationRequest request) {
         MailErrorCode mailErrorCode = mailService.verifyCode(request);
