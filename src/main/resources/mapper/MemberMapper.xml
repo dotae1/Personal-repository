@@ -17,7 +17,7 @@
         SELECT * FROM member WHERE email = #{email}
     </select>
 
-    <select id="findByloginId" resultType="com.example.playlist.member.entity.Member">
+    <select id="findByLoginId" resultType="com.example.playlist.member.entity.Member">
         SELECT * FROM member WHERE login_id = #{loginId}
     </select>
 </mapper>

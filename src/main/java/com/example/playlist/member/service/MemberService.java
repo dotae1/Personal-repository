@@ -24,7 +24,7 @@ public class MemberService implements UserDetailsService {
 
     public JoinResponse join(JoinRequest request) {
 
-        String verified = redisUtil.getData("verified" + request.getEmail());
+        String verified = redisUtil.getData("verified:" + request.getEmail());
 
         if(verified == null || !verified.equals(request.getEmail())) {
             throw new MemberException(MemberErrorCode.MAIL_VERIFIED_FAILED);
@@ -40,6 +40,7 @@ public class MemberService implements UserDetailsService {
                 request.getLoginId(),
                 request.getEmail(),
                 bCryptPasswordEncoder.encode(request.getPassword()),
+                request.getNickname(),
                 request.getName(),
                 request.getGender(),
                 request.getAge()
@@ -53,7 +54,7 @@ public class MemberService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String loginId) throws MemberException {
-        Member member = memberMapper.findByloginId(loginId);
+        Member member = memberMapper.findByLoginId(loginId);
 
         if(member == null) {
             throw new MemberException(MemberErrorCode.MEMBER_NOT_FOUND);

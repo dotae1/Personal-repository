@@ -11,5 +11,5 @@ public interface MemberMapper {
     Member findById(Long memberId);
     Optional<Member> findByEmail(String email);
     void save(Member member);
-    Member findByloginId(String loginId);
+    Member findByLoginId(String loginId);
 }
