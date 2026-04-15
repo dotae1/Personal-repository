@@ -2,23 +2,22 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.example.playlist.member.MemberMapper">
+<mapper namespace="com.example.playlist.member.repository.MemberMapper">
 
-    <insert id="upsertMember" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO member (spotify_id, email, display_name, access_token, refresh_token)
-        VALUES (#{spotifyId}, #{email}, #{displayName}, #{accessToken}, #{refreshToken})
-        ON CONFLICT (spotify_id)
-        DO UPDATE SET
-            email        = EXCLUDED.email,
-            display_name = EXCLUDED.display_name,
-            access_token = EXCLUDED.access_token,
-            refresh_token = EXCLUDED.refresh_token
+    <insert id="save" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO member (login_id, email, password, nickname, gender, age, created_at, updated_at, is_deleted)
+        VALUES (#{loginId}, #{email}, #{password}, #{nickname}, #{gender}, #{age}, #{createdAt}, #{updatedAt}, false)
     </insert>
 
-    <select id="findBySpotifyId" resultType="com.example.playlist.Entity.Member">
-        SELECT id, spotify_id, email, display_name, access_token, refresh_token, created_at
-        FROM member
-        WHERE spotify_id = #{spotifyId}
+    <select id="findById" resultType="com.example.playlist.member.entity.Member">
+        SELECT * FROM member WHERE id = #{id}
     </select>
 
+    <select id="findByEmail" resultType="com.example.playlist.member.entity.Member">
+        SELECT * FROM member WHERE email = #{email}
+    </select>
+
+    <select id="findByloginId" resultType="com.example.playlist.member.entity.Member">
+        SELECT * FROM member WHERE login_id = #{loginId}
+    </select>
 </mapper>

@@ -63,7 +63,6 @@ public class MailService {
         return code;
     }
 
-    //TODO : redis 활용하여, verify Key를 활용해 회원가입 할 때 이 이메일에 존재하는지 여부 체크
     public MailErrorCode verifyCode(MailVerificationRequest request) {
         String savedCode = redisUtil.getData(request.getEmail());
         Long ttl = redisUtil.getExpire(request.getEmail(), TimeUnit.SECONDS);

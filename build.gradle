@@ -34,7 +34,7 @@ dependencies {
 	annotationProcessor 'org.projectlombok:lombok'
 
 	// Spotify OAuth2 + Security
-//	implementation 'org.springframework.boot:spring-boot-starter-security'
+	implementation 'org.springframework.boot:spring-boot-starter-security'
 //	implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
 
 	// WebClient (Spotify API HTTP 통신)
@@ -44,14 +44,14 @@ dependencies {
 	implementation 'com.fasterxml.jackson.core:jackson-databind'
     implementation 'com.google.genai:google-genai:1.0.0'
 
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.0.2'
-
     implementation('se.michaelthelin.spotify:spotify-web-api-java:8.0.0') {
         exclude group: 'commons-logging', module: 'commons-logging'
     }
 
     implementation 'org.springframework.boot:spring-boot-starter-mail'
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.2'
 
 	testImplementation 'org.springframework.boot:spring-boot-starter-data-jdbc-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'

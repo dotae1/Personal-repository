@@ -17,7 +17,7 @@ spring:
     host: ${SMTP_HOST}
     port: ${SMTP_PORT}
     username: ${SMTP_USERNAME}
-    password: ${SMTP_PASSWORD}
+    password: ${SMTP_PASSWORD} #어플리케이션 비밀번호 발급받아서 주입
     properties:
       mail:
         smtp:
