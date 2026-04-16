@@ -1,5 +1,7 @@
 package com.example.playlist.global.config;
 
+import com.example.playlist.global.filter.JwtFilter;
+import com.example.playlist.global.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -8,42 +10,64 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    @Bean
-    public BCryptPasswordEncoder bCryptPasswordEncoder() {return new BCryptPasswordEncoder();}
+    private final JwtUtil jwtUtil;
 
-    /**
-     * CSRF : Session 기반과는 다르게 Stateless하기 때문에 서버에 인증정보를 보관하지 않는다.
-     * Rest Api에서는 요청에 필요한 정보를 포함시켜야한다. 따라서 불필요한 CSRF코드들을 작성할 필요가 없다.
-     * FormLogin : 기본적으로 제공하는 FormLogin 커스텀으로 구현 가능
-     * httpBasic : 특정 리소스에 대한 접근을 요청할 때 브라우저가 사용자에게 username과 password를 확인해 인가를 제한하는 방법
-     * logout : GET /logout으로 접근이 가능하고, 로그아웃 필터를 거치지 않고 커스텀으로 구현이 가능
-     * CORS :
-     */
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http, CorsConfigurationSource corsConfigurationSource) throws Exception {
+    public BCryptPasswordEncoder bCryptPasswordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .csrf((auth) -> auth.disable())
-                .formLogin((auth) -> auth.disable())
-                .httpBasic((auth) -> auth.disable())
-                .logout((auth) -> auth.disable())
-                .cors(cors -> cors.configurationSource(corsConfigurationSource));
+                .csrf(auth -> auth.disable())
+                .formLogin(auth -> auth.disable())
+                .httpBasic(auth -> auth.disable())
+                .logout(auth -> auth.disable())
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()));
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/mail/**").permitAll()
                         .requestMatchers("/members/join").permitAll()
                         .requestMatchers("/members/login").permitAll()
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .anyRequest().authenticated()
                 );
         http
-                .sessionManagement((session) -> session
+                .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+        http
+                .addFilterBefore(new JwtFilter(jwtUtil), UsernamePasswordAuthenticationFilter.class);
+
         return http.build();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(List.of(
+                "http://localhost:5173",
+                "http://localhost:3000",
+                "http://127.0.0.1:5173"
+        ));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
     }
 }

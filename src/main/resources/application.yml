@@ -37,9 +37,11 @@ spring:
           min-idle: 5
           max-wait: 2000ms
       timeout: 50000
-  cache:
-    jcache:
-      config:
+
+  jwt:
+    secret: ${JWT_SECRET_KEY}
+    access-token-expiration: 1800       # 30분 (초)
+    refresh-token-expiration: 1209600   # 14일 (초)
 
 
 #  security:
@@ -78,3 +80,4 @@ swagger:
 spotify:
   client-id: ${SPOTIFY_CLIENT_ID}
   client-secret: ${SPOTIFY_CLIENT_SECRET}
+

@@ -1,13 +1,18 @@
 CREATE TABLE IF NOT EXISTS member
 (
-    id            BIGSERIAL PRIMARY KEY,
-    spotify_id    VARCHAR(255) UNIQUE NOT NULL,
-    email         VARCHAR(255),
-    display_name  VARCHAR(255),
-    created_at    TIMESTAMP DEFAULT NOW(),
-    updated_at    TIMESTAMP DEFAULT NOW(),
-    is_deleted    BOOLEAN DEFAULT false
-    );
+    id         BIGSERIAL PRIMARY KEY,
+    login_id   VARCHAR(50)  UNIQUE NOT NULL,
+    email      VARCHAR(255) UNIQUE NOT NULL,
+    password   VARCHAR(255) NOT NULL,
+    nickname   VARCHAR(50)  NOT NULL,
+    name       VARCHAR(50)  NOT NULL,
+    gender     VARCHAR(10),
+    age        INTEGER,
+    provider   VARCHAR(20)  DEFAULT 'LOCAL',
+    created_at TIMESTAMP    DEFAULT NOW(),
+    updated_at TIMESTAMP    DEFAULT NOW(),
+    is_deleted BOOLEAN      DEFAULT false
+);
 
 CREATE TABLE IF NOT EXISTS playlist
 (

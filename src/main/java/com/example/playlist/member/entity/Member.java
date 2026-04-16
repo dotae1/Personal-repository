@@ -1,13 +1,10 @@
 package com.example.playlist.member.entity;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
-@Data
+@Getter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -15,6 +12,7 @@ public class Member {
     private Long id;
     private String loginId;
     private String email;
+    private String name;
     private String nickname;
     private String password;
     private Gender gender;
@@ -24,12 +22,13 @@ public class Member {
     private LocalDateTime updatedAt;
     private boolean isDeleted;
 
-    public static Member createMember(String loginId, String email, String nickname, String password, Gender gender, int age) {
+    public static Member createMember(String loginId, String email,String password, String nickname, String name, Gender gender, int age) {
         return Member.builder()
                 .loginId(loginId)
                 .email(email)
-                .nickname(nickname)
                 .password(password)
+                .nickname(nickname)
+                .name(name)
                 .gender(gender)
                 .age(age)
                 .createdAt(LocalDateTime.now())
