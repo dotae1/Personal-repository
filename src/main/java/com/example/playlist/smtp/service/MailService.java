@@ -1,17 +1,15 @@
 package com.example.playlist.smtp.service;
 
-import com.example.playlist.global.RedisUtil;
+import com.example.playlist.global.util.RedisUtil;
 import com.example.playlist.smtp.dto.MailRequest;
 import com.example.playlist.smtp.dto.MailVerificationRequest;
 import com.example.playlist.smtp.exception.MailErrorCode;
-import com.example.playlist.smtp.exception.MailSuccessCode;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.mail.MailException;
 import org.springframework.mail.MailSendException;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -63,7 +61,6 @@ public class MailService {
         return code;
     }
 
-    //TODO : redis 활용하여, verify Key를 활용해 회원가입 할 때 이 이메일에 존재하는지 여부 체크
     public MailErrorCode verifyCode(MailVerificationRequest request) {
         String savedCode = redisUtil.getData(request.getEmail());
         Long ttl = redisUtil.getExpire(request.getEmail(), TimeUnit.SECONDS);
@@ -74,7 +71,7 @@ public class MailService {
             return MailErrorCode.CODE_IS_NOT_CORRECT;
         }
 
-        redisUtil.setDataExpire("verified: " + request.getEmail(), request.getEmail(), 600);
+        redisUtil.setDataExpire("verified:" + request.getEmail(), request.getEmail(), 600);
         redisUtil.deleteData(request.getEmail());
 
         return MailErrorCode.CODE_OK;
