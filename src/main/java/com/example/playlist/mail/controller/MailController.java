@@ -1,12 +1,12 @@
-package com.example.playlist.smtp.controller;
+package com.example.playlist.mail.controller;
 
 import com.example.playlist.global.error.ErrorResponse;
 import com.example.playlist.global.success.SuccessResponse;
-import com.example.playlist.smtp.dto.MailRequest;
-import com.example.playlist.smtp.dto.MailVerificationRequest;
-import com.example.playlist.smtp.exception.MailErrorCode;
-import com.example.playlist.smtp.exception.MailSuccessCode;
-import com.example.playlist.smtp.service.MailService;
+import com.example.playlist.mail.dto.MailRequest;
+import com.example.playlist.mail.dto.MailVerificationRequest;
+import com.example.playlist.mail.exception.MailErrorCode;
+import com.example.playlist.mail.exception.MailSuccessCode;
+import com.example.playlist.mail.service.MailService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.mail.MessagingException;
 import jakarta.validation.Valid;

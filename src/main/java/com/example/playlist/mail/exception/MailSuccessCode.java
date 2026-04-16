@@ -1,4 +1,4 @@
-package com.example.playlist.smtp.exception;
+package com.example.playlist.mail.exception;
 
 import com.example.playlist.global.success.SuccessCode;
 import lombok.Getter;

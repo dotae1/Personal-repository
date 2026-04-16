@@ -1,4 +1,4 @@
-package com.example.playlist.smtp.dto;
+package com.example.playlist.mail.dto;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;

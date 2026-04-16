@@ -1,4 +1,4 @@
-package com.example.playlist.Entity;
+package com.example.playlist.playlist.entity;
 
 import lombok.Builder;
 import lombok.Data;
