@@ -1,16 +1,17 @@
-package com.example.playlist.smtp.service;
+package com.example.playlist.mail.service;
 
 import com.example.playlist.global.util.RedisUtil;
-import com.example.playlist.smtp.dto.MailRequest;
-import com.example.playlist.smtp.dto.MailVerificationRequest;
-import com.example.playlist.smtp.exception.MailErrorCode;
+import com.example.playlist.mail.dto.MailRequest;
+import com.example.playlist.mail.dto.MailVerificationRequest;
+import com.example.playlist.mail.exception.MailErrorCode;
+import com.example.playlist.mail.exception.MailException;
+import com.example.playlist.member.repository.MemberMapper;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.MailException;
 import org.springframework.mail.MailSendException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,7 @@ public class MailService {
 
     private final JavaMailSender mailSender;
     private final RedisUtil redisUtil;
+    private final MemberMapper memberMapper;
 
     @Value("${spring.mail.username}")
     String sendEmail;
@@ -53,8 +55,11 @@ public class MailService {
     }
 
     public String sendCertificationMail(MailRequest mailRequest) throws MessagingException {
-        String code = createAuthNumber();
+        memberMapper.findByEmail(mailRequest.getEmail()).ifPresent(member -> {
+            throw new MailException(MailErrorCode.EMAIL_ALREADY_EXIST);
+        });
 
+        String code = createAuthNumber();
         sendMail(createCodeEmail(mailRequest.getEmail(), code));
         redisUtil.setDataExpire(mailRequest.getEmail(), code, 180L);
 

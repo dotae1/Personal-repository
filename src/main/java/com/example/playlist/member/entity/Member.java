@@ -16,13 +16,14 @@ public class Member {
     private String nickname;
     private String password;
     private Gender gender;
-    private int age;
+    private Integer age;
     private Provider provider;
+    private boolean profileComplete;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private boolean isDeleted;
 
-    public static Member createMember(String loginId, String email,String password, String nickname, String name, Gender gender, int age) {
+    public static Member createMember(String loginId, String email, String password, String nickname, String name, Gender gender, int age) {
         return Member.builder()
                 .loginId(loginId)
                 .email(email)
@@ -31,6 +32,20 @@ public class Member {
                 .name(name)
                 .gender(gender)
                 .age(age)
+                .provider(Provider.LOCAL)
+                .profileComplete(true)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+    }
+
+    public static Member createSocialMember(String loginId, String email, String name, Provider provider) {
+        return Member.builder()
+                .loginId(loginId)
+                .email(email)
+                .name(name)
+                .provider(provider)
+                .profileComplete(false)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();

@@ -20,13 +20,13 @@
         VALUES (#{playlistId}, #{songId}, #{position})
     </insert>
 
-    <select id="findSongBySpotifyTrackId" resultType="com.example.playlist.Entity.Song">
+    <select id="findSongBySpotifyTrackId" resultType="com.example.playlist.playlist.entity.Song">
         SELECT id, spotify_track_id, spotify_track_uri, title, artist, album
         FROM song
         WHERE spotify_track_id = #{spotifyTrackId}
     </select>
 
-    <select id="findByMemberId" resultType="com.example.playlist.Entity.Playlist">
+    <select id="findByMemberId" resultType="com.example.playlist.playlist.entity.Playlist">
         SELECT id, member_id, spotify_playlist_id, name, prompt, created_at
         FROM playlist
         WHERE member_id = #{memberId}

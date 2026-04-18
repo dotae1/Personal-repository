@@ -12,7 +12,8 @@ public enum MemberErrorCode implements ErrorCode {
     ACCESS_EXCEPTION(HttpStatus.BAD_REQUEST, "액세스 토큰이 없습니다."),
     MAIL_VERIFIED_FAILED(HttpStatus.BAD_REQUEST, "메일 인증이 완료되지않았습니다."),
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."),
-    INVALID_PASSWORD(HttpStatus.UNAUTHORIZED, "비밀번호가 올바르지 않습니다.");
+    INVALID_PASSWORD(HttpStatus.UNAUTHORIZED, "비밀번호가 올바르지 않습니다."),
+    INVALID_TEMP_TOKEN(HttpStatus.UNAUTHORIZED, "유효하지 않은 임시 토큰입니다. 소셜 로그인을 다시 진행해주세요.");
 
     private final HttpStatus status;
     private final String message;

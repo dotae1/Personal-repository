@@ -1,7 +1,11 @@
 package com.example.playlist.global.config;
 
 import com.example.playlist.global.filter.JwtFilter;
+import com.example.playlist.global.oauth2.HttpCookieOAuth2AuthorizationRequestRepository;
 import com.example.playlist.global.util.JwtUtil;
+import com.example.playlist.member.oauth2.CustomOAuth2UserService;
+import com.example.playlist.member.oauth2.OAuth2FailureHandler;
+import com.example.playlist.member.oauth2.OAuth2SuccessHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,6 +27,10 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtUtil jwtUtil;
+    private final CustomOAuth2UserService customOAuth2UserService;
+    private final OAuth2SuccessHandler oAuth2SuccessHandler;
+    private final OAuth2FailureHandler oAuth2FailureHandler;
+    private final HttpCookieOAuth2AuthorizationRequestRepository authorizationRequestRepository;
 
     @Bean
     public BCryptPasswordEncoder bCryptPasswordEncoder() {
@@ -42,12 +50,23 @@ public class SecurityConfig {
                         .requestMatchers("/mail/**").permitAll()
                         .requestMatchers("/members/join").permitAll()
                         .requestMatchers("/members/login").permitAll()
+                        .requestMatchers("/members/profile/complete").permitAll()
+                        .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .anyRequest().authenticated()
                 );
         http
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+        http
+                .oauth2Login(oauth2 -> oauth2
+                        .authorizationEndpoint(auth -> auth
+                                .authorizationRequestRepository(authorizationRequestRepository))
+                        .userInfoEndpoint(userInfo -> userInfo
+                                .userService(customOAuth2UserService))
+                        .successHandler(oAuth2SuccessHandler)
+                        .failureHandler(oAuth2FailureHandler)
+                );
         http
                 .addFilterBefore(new JwtFilter(jwtUtil), UsernamePasswordAuthenticationFilter.class);
 
