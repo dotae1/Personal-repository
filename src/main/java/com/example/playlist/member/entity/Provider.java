@@ -4,5 +4,5 @@ public enum Provider {
     LOCAL,
     NAVER,
     GOOGLE,
-    KAKAO
+    SPOTIFY
 }
