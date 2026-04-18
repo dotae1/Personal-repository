@@ -5,12 +5,12 @@
 <mapper namespace="com.example.playlist.member.repository.MemberMapper">
 
     <insert id="save" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO member (login_id, email, password, nickname, name, gender, age, created_at, updated_at, is_deleted)
-        VALUES (#{loginId}, #{email}, #{password}, #{nickname}, #{name}, #{gender}, #{age}, #{createdAt}, #{updatedAt}, false)
+        INSERT INTO member (login_id, email, password, nickname, name, gender, age, provider, profile_complete, created_at, updated_at, is_deleted)
+        VALUES (#{loginId}, #{email}, #{password}, #{nickname}, #{name}, #{gender}, #{age}, #{provider}, #{profileComplete}, #{createdAt}, #{updatedAt}, false)
     </insert>
 
     <select id="findById" resultType="com.example.playlist.member.entity.Member">
-        SELECT * FROM member WHERE id = #{id}
+        SELECT * FROM member WHERE id = #{memberId}
     </select>
 
     <select id="findByEmail" resultType="com.example.playlist.member.entity.Member">
@@ -20,4 +20,14 @@
     <select id="findByLoginId" resultType="com.example.playlist.member.entity.Member">
         SELECT * FROM member WHERE login_id = #{loginId}
     </select>
+
+    <update id="updateProfile">
+        UPDATE member
+        SET nickname = #{nickname},
+            age      = #{age},
+            gender   = #{gender},
+            profile_complete = true,
+            updated_at = NOW()
+        WHERE id = #{memberId}
+    </update>
 </mapper>

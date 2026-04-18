@@ -61,6 +61,46 @@ public class JwtUtil {
                 .compact();
     }
 
+    /** 소셜 신규 회원 - 추가정보 입력 전까지만 유효한 10분짜리 임시 토큰 */
+    public String createTempToken(Long memberId) {
+        Date now = new Date();
+        return Jwts.builder()
+                .subject("TempToken")
+                .claim("memberId", memberId)
+                .claim("type", "TEMP")
+                .issuedAt(now)
+                .expiration(new Date(now.getTime() + 10 * 60 * 1000L))
+                .signWith(getKey())
+                .compact();
+    }
+
+    public void sendTempToken(HttpServletResponse response, String tempToken) {
+        Cookie tempCookie = new Cookie("tempToken", tempToken);
+        tempCookie.setHttpOnly(true);
+        tempCookie.setPath("/");
+        tempCookie.setMaxAge(10 * 60);
+        response.addCookie(tempCookie);
+        log.info("TempToken 쿠키 설정 완료");
+    }
+
+    public Optional<Long> extractMemberIdFromTempToken(HttpServletRequest request) {
+        if (request.getCookies() == null) return Optional.empty();
+        return Arrays.stream(request.getCookies())
+                .filter(c -> "tempToken".equals(c.getName()))
+                .map(Cookie::getValue)
+                .filter(this::isTokenValid)
+                .findFirst()
+                .flatMap(token -> {
+                    try {
+                        Claims claims = parseClaims(token);
+                        if (!"TEMP".equals(claims.get("type", String.class))) return Optional.empty();
+                        return Optional.ofNullable(claims.get("memberId", Long.class));
+                    } catch (Exception e) {
+                        return Optional.empty();
+                    }
+                });
+    }
+
     public void sendAccessAndRefreshToken(HttpServletResponse response, String accessToken, String refreshToken) {
         Cookie accessCookie = new Cookie("accessToken", accessToken);
         accessCookie.setHttpOnly(true);
@@ -143,7 +183,7 @@ public class JwtUtil {
     }
 
     @Transactional
-    public void logout(HttpServletRequest request, String loginId) {
+    public void logout(HttpServletRequest request, HttpServletResponse response, String loginId) {
         extractAccessToken(request).ifPresent(accessToken -> {
             try {
                 Date expiration = parseClaims(accessToken).getExpiration();
@@ -156,6 +196,17 @@ public class JwtUtil {
                 log.warn("로그아웃 처리 중 토큰 파싱 실패: {}", e.getMessage());
             }
         });
+        // 브라우저 쿠키 삭제
+        clearCookie(response, "accessToken");
+        clearCookie(response, "refreshToken");
+    }
+
+    private void clearCookie(HttpServletResponse response, String cookieName) {
+        Cookie cookie = new Cookie(cookieName, null);
+        cookie.setHttpOnly(true);
+        cookie.setPath("/");
+        cookie.setMaxAge(0);
+        response.addCookie(cookie);
     }
 
     private Claims parseClaims(String token) {

@@ -35,7 +35,7 @@ dependencies {
 
 	// Spotify OAuth2 + Security
 	implementation 'org.springframework.boot:spring-boot-starter-security'
-//	implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
+	implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
 	// WebClient (Spotify API HTTP 통신)
     implementation 'org.springframework:spring-webflux'
 	// JSON 파싱 (Gemini 응답 처리)

@@ -4,6 +4,8 @@ import com.example.playlist.global.util.JwtUtil;
 import com.example.playlist.global.util.RedisUtil;
 import com.example.playlist.member.dto.JoinRequest;
 import com.example.playlist.member.dto.JoinResponse;
+import com.example.playlist.member.dto.MemberInfoResponse;
+import com.example.playlist.member.dto.SocialProfileCompleteRequest;
 import com.example.playlist.member.entity.Member;
 import com.example.playlist.member.exception.MemberErrorCode;
 import com.example.playlist.member.exception.MemberException;
@@ -68,8 +70,35 @@ public class MemberService implements UserDetailsService {
         jwtUtil.sendAccessAndRefreshToken(response, accessToken, refreshToken);
     }
 
-    public void logout(HttpServletRequest request, String loginId) {
-        jwtUtil.logout(request, loginId);
+    public void logout(HttpServletRequest request, HttpServletResponse response, String loginId) {
+        jwtUtil.logout(request, response, loginId);
+    }
+
+    public MemberInfoResponse getMe(String loginId) {
+        Member member = memberMapper.findByLoginId(loginId)
+                .orElseThrow(() -> new MemberException(MemberErrorCode.MEMBER_NOT_FOUND));
+        return MemberInfoResponse.from(member);
+    }
+
+    /**
+     * 소셜 신규 회원 추가정보 입력 완료.
+     * tempToken 쿠키를 검증 후 nickname/age/gender 저장 → 정식 토큰 발급.
+     */
+    public void completeProfile(HttpServletRequest request,
+                                HttpServletResponse response,
+                                SocialProfileCompleteRequest profileRequest) {
+        Long memberId = jwtUtil.extractMemberIdFromTempToken(request)
+                .orElseThrow(() -> new MemberException(MemberErrorCode.INVALID_TEMP_TOKEN));
+
+        memberMapper.updateProfile(memberId, profileRequest.getNickname(), profileRequest.getAge(), profileRequest.getGender());
+
+        Member member = memberMapper.findById(memberId)
+                .orElseThrow(() -> new MemberException(MemberErrorCode.MEMBER_NOT_FOUND));
+
+        String accessToken = jwtUtil.createAccessToken(member.getLoginId());
+        String refreshToken = jwtUtil.createRefreshToken(member.getLoginId());
+        jwtUtil.saveRefreshToken(member.getLoginId(), refreshToken);
+        jwtUtil.sendAccessAndRefreshToken(response, accessToken, refreshToken);
     }
 
     @Override
