@@ -4,6 +4,8 @@ services:
     image: ${ECR_REGISTRY}/${ECR_REPOSITORY}:latest
     ports:
       - "8080:8080"
+    env_file:
+      - .env
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - REDIS_URL=redis://redis:6379
