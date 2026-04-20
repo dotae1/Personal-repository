@@ -7,12 +7,15 @@ import com.example.playlist.member.repository.MemberMapper;
 import com.example.playlist.member.repository.MemberSocialMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
 
@@ -33,6 +36,9 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
     private final MemberMapper memberMapper;
     private final MemberSocialMapper memberSocialMapper;
+    private final RedisTemplate<String, String> redisTemplate;
+
+    public static final String SPOTIFY_USER_TOKEN_KEY = "SPOTIFY_USER_TOKEN:";
 
     @Override
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
@@ -44,6 +50,21 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         OAuthAttributes oAuthAttributes = OAuthAttributes.of(registrationId, attributes);
 
         Member member = processOAuth2User(oAuthAttributes);
+
+        // Spotify 로그인 시 유저 액세스 토큰을 Redis에 저장
+        if ("spotify".equalsIgnoreCase(registrationId)) {
+            String spotifyAccessToken = userRequest.getAccessToken().getTokenValue();
+            Instant expiresAt = userRequest.getAccessToken().getExpiresAt();
+            long ttlSeconds = expiresAt != null
+                    ? Duration.between(Instant.now(), expiresAt).getSeconds()
+                    : 3600L;
+            redisTemplate.opsForValue().set(
+                    SPOTIFY_USER_TOKEN_KEY + member.getId(),
+                    spotifyAccessToken,
+                    Duration.ofSeconds(Math.max(ttlSeconds, 60))
+            );
+            log.info("[OAuth2] Spotify 유저 토큰 저장 - memberId={}", member.getId());
+        }
 
         return new CustomOAuth2User(
                 attributes,

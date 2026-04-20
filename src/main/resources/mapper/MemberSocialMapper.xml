@@ -16,4 +16,11 @@
           AND provider_id = #{providerId}
     </select>
 
+    <select id="findByMemberIdAndProvider" resultType="com.example.playlist.member.entity.MemberSocial">
+        SELECT *
+        FROM member_social
+        WHERE member_id = #{memberId}
+          AND provider = #{provider}
+    </select>
+
 </mapper>
