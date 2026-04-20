@@ -21,7 +21,10 @@ jobs:
           java-version: 17
 
       - name: 테스트 및 빌드하기
-        run: ./gradlew clean build
+        run: |
+          echo "${{ secrets.ENV }}" | base64 -d > .env
+          export $(cat .env | xargs)
+          ./gradlew clean build
 
       # 2. AWS CLI 인증
       - name: Configure AWS credentials
