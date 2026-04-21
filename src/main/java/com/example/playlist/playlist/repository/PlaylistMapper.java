@@ -21,4 +21,10 @@ public interface PlaylistMapper {
     Optional<Song> findSongBySpotifyTrackId(@Param("spotifyTrackId") String spotifyTrackId);
 
     List<Playlist> findByMemberId(@Param("memberId") Long memberId);
+
+    Optional<Playlist> findById(@Param("id") Long id);
+
+    List<Song> findSongsByPlaylistId(@Param("playlistId") Long playlistId);
+
+    void deleteById(@Param("id") Long id, @Param("memberId") Long memberId);
 }
