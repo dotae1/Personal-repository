@@ -9,6 +9,7 @@ import java.util.List;
 
 public record MyPageResponse(
         String name,
+        String nickname,
         String email,
         Integer age,
         Gender gender,
@@ -18,6 +19,7 @@ public record MyPageResponse(
     public static MyPageResponse of(Member member, List<Playlist> playlists, List<Post> posts) {
         return new MyPageResponse(
                 member.getName(),
+                member.getNickname(),
                 member.getEmail(),
                 member.getAge(),
                 member.getGender(),

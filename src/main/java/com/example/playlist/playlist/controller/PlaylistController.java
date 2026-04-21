@@ -2,6 +2,7 @@ package com.example.playlist.playlist.controller;
 
 import com.example.playlist.gemini.dto.GeminiRequest;
 import com.example.playlist.global.success.SuccessResponse;
+import com.example.playlist.playlist.dto.PlaylistDetailResponse;
 import com.example.playlist.playlist.dto.PlaylistResponse;
 import com.example.playlist.playlist.exception.PlaylistSuccessCode;
 import com.example.playlist.playlist.dto.SaveNewPlaylistRequest;
@@ -31,6 +32,26 @@ public class PlaylistController {
             @RequestBody GeminiRequest geminiRequest
     ) throws JsonProcessingException {
         return playlistService.createPlayList(geminiRequest);
+    }
+
+    @Operation(summary = "플레이리스트 상세 조회", description = "플레이리스트 정보 + 곡 목록 반환 (본인 것만)")
+    @GetMapping("/{id}")
+    public ResponseEntity<SuccessResponse<PlaylistDetailResponse>> getPlaylistDetail(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        PlaylistDetailResponse result = playlistService.getPlaylistDetail(userDetails.getUsername(), id);
+        return ResponseEntity.ok(SuccessResponse.of(PlaylistSuccessCode.PLAYLIST_DETAIL, result));
+    }
+
+    @Operation(summary = "플레이리스트 삭제", description = "본인 플레이리스트 삭제")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<SuccessResponse<?>> deletePlaylist(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        playlistService.deletePlaylist(userDetails.getUsername(), id);
+        return ResponseEntity.ok(SuccessResponse.of(PlaylistSuccessCode.PLAYLIST_DELETED));
     }
 
     @Operation(summary = "내 Spotify 플레이리스트 목록 조회", description = "기존 플레이리스트에 추가하기 전 목록 불러오기")

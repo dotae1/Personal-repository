@@ -3,12 +3,14 @@ package com.example.playlist.playlist.service;
 import com.example.playlist.gemini.dto.GeminiRequest;
 import com.example.playlist.gemini.dto.GeminiResponse;
 import com.example.playlist.gemini.service.GeminiService;
+import com.example.playlist.member.entity.Member;
 import com.example.playlist.member.repository.MemberMapper;
 import com.example.playlist.member.repository.MemberSocialMapper;
 import com.example.playlist.member.oauth2.CustomOAuth2UserService;
 import com.example.playlist.playlist.repository.PlaylistMapper;
 import com.example.playlist.playlist.exception.PlaylistErrorCode;
 import com.example.playlist.playlist.exception.PlaylistException;
+import com.example.playlist.playlist.dto.PlaylistDetailResponse;
 import com.example.playlist.playlist.dto.PlaylistResponse;
 import com.example.playlist.playlist.dto.SaveNewPlaylistRequest;
 import com.example.playlist.playlist.dto.SaveToExistingPlaylistRequest;
@@ -86,6 +88,32 @@ public class PlaylistService {
 
         savePlaylistToDB(memberId, req.getTargetSpotifyPlaylistId(), req.getPlaylistName(), req.getPrompt(), req.getTracks());
         log.info("[Playlist] 기존 플레이리스트에 추가 완료 - memberId={}, spotifyPlaylistId={}", memberId, req.getTargetSpotifyPlaylistId());
+    }
+
+    /** 플레이리스트 상세 조회 (곡 목록 포함) */
+    public PlaylistDetailResponse getPlaylistDetail(String loginId, Long playlistId) {
+        Long memberId = getMemberId(loginId);
+
+        Playlist playlist = playlistMapper.findById(playlistId)
+                .orElseThrow(() -> new PlaylistException(PlaylistErrorCode.PLAYLIST_NOT_FOUND));
+
+        if (!playlist.getMemberId().equals(memberId)) {
+            throw new PlaylistException(PlaylistErrorCode.PLAYLIST_FORBIDDEN);
+        }
+
+        List<Song> songs = playlistMapper.findSongsByPlaylistId(playlistId);
+        return PlaylistDetailResponse.of(playlist, songs);
+    }
+
+    /** 플레이리스트 삭제 */
+    public void deletePlaylist(String loginId, Long playlistId) {
+        Long memberId = getMemberId(loginId);
+
+        playlistMapper.findById(playlistId)
+                .orElseThrow(() -> new PlaylistException(PlaylistErrorCode.PLAYLIST_NOT_FOUND));
+
+        playlistMapper.deleteById(playlistId, memberId);
+        log.info("[Playlist] 삭제 완료 - memberId={}, playlistId={}", memberId, playlistId);
     }
 
     // ─────────────────────────────────────────────

@@ -8,7 +8,9 @@ import org.springframework.http.HttpStatus;
 public enum PlaylistSuccessCode implements SuccessCode {
 
     PLAYLIST_SAVED(HttpStatus.CREATED, "플레이리스트가 저장되었습니다."),
-    PLAYLIST_ADDED(HttpStatus.OK, "기존 플레이리스트에 트랙이 추가되었습니다.");
+    PLAYLIST_ADDED(HttpStatus.OK, "기존 플레이리스트에 트랙이 추가되었습니다."),
+    PLAYLIST_DETAIL(HttpStatus.OK, "플레이리스트 상세 조회 성공"),
+    PLAYLIST_DELETED(HttpStatus.OK, "플레이리스트가 삭제되었습니다.");
 
     private final HttpStatus status;
     private final String message;
