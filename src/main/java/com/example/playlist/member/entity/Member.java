@@ -18,6 +18,7 @@ public class Member {
     private Gender gender;
     private Integer age;
     private Provider provider;
+    private Role role;
     private boolean profileComplete;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -33,6 +34,7 @@ public class Member {
                 .gender(gender)
                 .age(age)
                 .provider(Provider.LOCAL)
+                .role(Role.USER)
                 .profileComplete(true)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
@@ -45,6 +47,7 @@ public class Member {
                 .email(email)
                 .name(name)
                 .provider(provider)
+                .role(Role.USER)
                 .profileComplete(false)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())

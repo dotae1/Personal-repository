@@ -71,7 +71,8 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                 oAuthAttributes.getNameAttributeKey(),
                 member.getLoginId(),
                 member.getId(),
-                member.isProfileComplete()
+                member.isProfileComplete(),
+                member.getRole()
         );
     }
 

@@ -4,6 +4,7 @@ import com.example.playlist.global.success.SuccessResponse;
 import com.example.playlist.member.dto.JoinRequest;
 import com.example.playlist.member.dto.LoginRequest;
 import com.example.playlist.member.dto.MemberInfoResponse;
+import com.example.playlist.member.dto.MyPageResponse;
 import com.example.playlist.member.dto.SocialProfileCompleteRequest;
 import com.example.playlist.member.exception.MemberSuccessCode;
 import com.example.playlist.member.service.MemberService;
@@ -70,6 +71,14 @@ public class MemberController {
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(SuccessResponse.of(MemberSuccessCode.LOGOUT_SUCCESS));
+    }
+
+    @GetMapping("/mypage")
+    public ResponseEntity<SuccessResponse<MyPageResponse>> getMyPage(
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        MyPageResponse myPage = memberService.getMyPage(userDetails.getUsername());
+        return ResponseEntity.ok(SuccessResponse.of(MemberSuccessCode.MYPAGE_SUCCESS, myPage));
     }
 
     /**

@@ -39,11 +39,12 @@ public class JwtUtil {
         return Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String createAccessToken(String loginId) {
+    public String createAccessToken(String loginId, String role) {
         Date now = new Date();
         return Jwts.builder()
                 .subject("AccessToken")
                 .claim("loginId", loginId)
+                .claim("role", role)
                 .issuedAt(now)
                 .expiration(new Date(now.getTime() + accessTokenExpiration * 1000))
                 .signWith(getKey())
@@ -140,6 +141,16 @@ public class JwtUtil {
             );
         } catch (Exception e) {
             log.info("loginId 추출 실패: {}", e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    public Optional<String> extractRole(String token) {
+        try {
+            return Optional.ofNullable(
+                    parseClaims(token).get("role", String.class)
+            );
+        } catch (Exception e) {
             return Optional.empty();
         }
     }

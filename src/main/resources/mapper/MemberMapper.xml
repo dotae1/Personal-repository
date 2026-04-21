@@ -5,8 +5,8 @@
 <mapper namespace="com.example.playlist.member.repository.MemberMapper">
 
     <insert id="save" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO member (login_id, email, password, nickname, name, gender, age, provider, profile_complete, created_at, updated_at, is_deleted)
-        VALUES (#{loginId}, #{email}, #{password}, #{nickname}, #{name}, #{gender}, #{age}, #{provider}, #{profileComplete}, #{createdAt}, #{updatedAt}, false)
+        INSERT INTO member (login_id, email, password, nickname, name, gender, age, provider, role, profile_complete, created_at, updated_at, is_deleted)
+        VALUES (#{loginId}, #{email}, #{password}, #{nickname}, #{name}, #{gender}, #{age}, #{provider}, #{role}, #{profileComplete}, #{createdAt}, #{updatedAt}, false)
     </insert>
 
     <select id="findById" resultType="com.example.playlist.member.entity.Member">

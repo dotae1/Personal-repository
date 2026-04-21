@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS member
     gender           VARCHAR(10),
     age              INTEGER,
     provider         VARCHAR(20)  DEFAULT 'LOCAL',
+    role             VARCHAR(10)  DEFAULT 'USER',
     profile_complete BOOLEAN      DEFAULT true,
     created_at       TIMESTAMP    DEFAULT NOW(),
     updated_at       TIMESTAMP    DEFAULT NOW(),
@@ -31,6 +32,20 @@ CREATE TABLE IF NOT EXISTS member_social
 -- ALTER TABLE member ADD COLUMN IF NOT EXISTS profile_complete BOOLEAN DEFAULT true;
 -- ALTER TABLE member ALTER COLUMN password DROP NOT NULL;
 -- ALTER TABLE member ALTER COLUMN nickname DROP NOT NULL;
+-- ALTER TABLE member ADD COLUMN IF NOT EXISTS role VARCHAR(10) DEFAULT 'USER';
+
+CREATE TABLE IF NOT EXISTS post
+(
+    id          BIGSERIAL PRIMARY KEY,
+    member_id   BIGINT       NOT NULL REFERENCES member (id) ON DELETE CASCADE,
+    title       VARCHAR(255) NOT NULL,
+    content     TEXT         NOT NULL,
+    category    VARCHAR(30)  NOT NULL,
+    status      VARCHAR(20)  DEFAULT 'PENDING',
+    answer      TEXT,
+    answered_at TIMESTAMP,
+    created_at  TIMESTAMP    DEFAULT NOW()
+);
 
 CREATE TABLE IF NOT EXISTS playlist
 (

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.playlist.post.repository.PostMapper">
+
+    <insert id="insertPost" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO post (member_id, title, content, category, status, created_at)
+        VALUES (#{memberId}, #{title}, #{content}, #{category}, #{status}, NOW())
+    </insert>
+
+    <select id="findById" resultType="com.example.playlist.post.entity.Post">
+        SELECT id, member_id, title, content, category, status, answer, answered_at, created_at
+        FROM post
+        WHERE id = #{id}
+    </select>
+
+    <select id="findByMemberId" resultType="com.example.playlist.post.entity.Post">
+        SELECT id, member_id, title, content, category, status, answer, answered_at, created_at
+        FROM post
+        WHERE member_id = #{memberId}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="findAll" resultType="com.example.playlist.post.entity.Post">
+        SELECT id, member_id, title, content, category, status, answer, answered_at, created_at
+        FROM post
+        ORDER BY created_at DESC
+    </select>
+
+    <update id="updateAnswer">
+        UPDATE post
+        SET answer      = #{answer},
+            status      = 'ANSWERED',
+            answered_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+</mapper>

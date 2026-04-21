@@ -32,6 +32,7 @@ import java.util.Map;
 public class SecurityConfig {
 
     private final JwtUtil jwtUtil;
+    private final JwtFilter jwtFilter;
     private final CustomOAuth2UserService customOAuth2UserService;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
     private final OAuth2FailureHandler oAuth2FailureHandler;
@@ -71,6 +72,7 @@ public class SecurityConfig {
                         .requestMatchers("/members/profile/complete").permitAll()
                         .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        .requestMatchers("/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex
@@ -89,7 +91,7 @@ public class SecurityConfig {
                         .failureHandler(oAuth2FailureHandler)
                 );
         http
-                .addFilterBefore(new JwtFilter(jwtUtil), UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
