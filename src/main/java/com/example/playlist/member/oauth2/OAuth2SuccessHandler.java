@@ -44,7 +44,8 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
         // 기존 회원 → 정상 토큰 발급
         String loginId = oauth2User.getLoginId();
-        String accessToken = jwtUtil.createAccessToken(loginId);
+        String role = oauth2User.getRole() != null ? oauth2User.getRole().name() : "USER";
+        String accessToken = jwtUtil.createAccessToken(loginId, role);
         String refreshToken = jwtUtil.createRefreshToken(loginId);
         jwtUtil.saveRefreshToken(loginId, refreshToken);
         jwtUtil.sendAccessAndRefreshToken(response, accessToken, refreshToken);

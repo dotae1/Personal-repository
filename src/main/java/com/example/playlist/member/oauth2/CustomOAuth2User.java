@@ -1,5 +1,6 @@
 package com.example.playlist.member.oauth2;
 
+import com.example.playlist.member.entity.Role;
 import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -10,7 +11,7 @@ import java.util.Map;
 
 /**
  * OAuth2 로그인 후 SecurityContext에 담길 사용자 객체.
- * loginId, memberId, profileComplete 정보를 추가로 보유한다.
+ * loginId, memberId, profileComplete, role 정보를 추가로 보유한다.
  */
 @Getter
 public class CustomOAuth2User implements OAuth2User {
@@ -20,17 +21,20 @@ public class CustomOAuth2User implements OAuth2User {
     private final String loginId;
     private final Long memberId;
     private final boolean profileComplete;
+    private final Role role;
 
     public CustomOAuth2User(Map<String, Object> attributes,
                             String nameAttributeKey,
                             String loginId,
                             Long memberId,
-                            boolean profileComplete) {
+                            boolean profileComplete,
+                            Role role) {
         this.attributes = attributes;
         this.nameAttributeKey = nameAttributeKey;
         this.loginId = loginId;
         this.memberId = memberId;
         this.profileComplete = profileComplete;
+        this.role = role;
     }
 
     @Override
