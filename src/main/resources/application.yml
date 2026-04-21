@@ -51,12 +51,12 @@ spring:
           google:
             client-id: ${GOOGLE_CLIENT_ID}
             client-secret: ${GOOGLE_CLIENT_SECRET}
-            redirect-uri: "http://127.0.0.1:8080/api/v1/login/oauth2/code/google"
+            redirect-uri: "https://3-34-241-80.sslip.io/api/v1/login/oauth2/code/google"
             scope: profile,email   # openid 제외 → OIDC 미사용, 단일 CustomOAuth2UserService로 처리
           spotify:
             client-id: ${SPOTIFY_CLIENT_ID}
             client-secret: ${SPOTIFY_CLIENT_SECRET}
-            redirect-uri: "http://127.0.0.1:8080/api/v1/login/oauth2/code/spotify"
+            redirect-uri: "https://3-34-241-80.sslip.io/api/v1/login/oauth2/code/spotify"
             authorization-grant-type: authorization_code
             scope:
               - user-read-email
