@@ -89,5 +89,5 @@ spotify:
   client-secret: ${SPOTIFY_CLIENT_SECRET}
 
 app:
-  frontend-url: ${FRONTEND_URL:http://127.0.0.1:5173}
+  frontend-url: ${FRONTEND_URL:https://playlist-frontend-one.vercel.app}
 
