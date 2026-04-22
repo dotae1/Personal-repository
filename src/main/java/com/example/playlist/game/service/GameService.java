@@ -89,6 +89,12 @@ public class GameService {
         log.info("[Game] Gemini raw json={}", json);
 
         com.fasterxml.jackson.databind.JsonNode node = objectMapper.readTree(json);
+
+        // Gemini가 {"songs": [...]} 형태로 반환하는 경우 처리
+        if (node.has("songs") && node.get("songs").isArray() && !node.get("songs").isEmpty()) {
+            node = node.get("songs").get(0);
+        }
+
         String title = node.get("title").asText();
         String artist = node.get("artist").asText();
         return new SongInfo(title, artist);
