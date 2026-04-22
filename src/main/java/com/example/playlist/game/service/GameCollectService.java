@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -25,27 +26,49 @@ public class GameCollectService {
 
     private static final int SEARCH_LIMIT = 10;
     private static final int TARGET = 100;
-    private static final int MIN_POPULARITY = 0;
-    private static final int MAX_OFFSET = 500; // 최대 500곡 탐색
+
+    private static final Map<Integer, List<String>> KOREAN_ARTISTS = Map.of(
+        1990, List.of(
+            "서태지와 아이들", "김건모", "신승훈", "H.O.T.", "S.E.S.",
+            "god", "Fin.K.L", "젝스키스", "이승환", "조성모", "클론",
+            "박진영", "유승준", "룰라", "015B", "김광석", "이적",
+            "노이즈", "솔리드", "듀스", "DJ DOC", "토이", "패닉"
+        ),
+        2000, List.of(
+            "TVXQ", "Big Bang", "Wonder Girls", "Girls Generation", "2NE1",
+            "Super Junior", "KARA", "2PM", "SHINee", "BoA", "SS501",
+            "이효리", "비", "버즈", "브라운아이드걸스", "에픽하이",
+            "원더걸스", "f(x)", "씨스타", "4Minute", "지드래곤", "태양"
+        ),
+        2010, List.of(
+            "BTS", "EXO", "TWICE", "BLACKPINK", "Red Velvet",
+            "IU", "PSY", "INFINITE", "SISTAR", "GOT7", "Wanna One",
+            "NCT 127", "MAMAMOO", "AOA", "B2ST", "2AM", "케이윌",
+            "악동뮤지션", "볼빨간사춘기", "선미", "CL", "지코"
+        ),
+        2020, List.of(
+            "BTS", "BLACKPINK", "aespa", "IVE", "NewJeans",
+            "Stray Kids", "ITZY", "SEVENTEEN", "LE SSERAFIM", "NCT 127",
+            "ENHYPEN", "G I-DLE", "TXT", "ATEEZ", "Kep1er",
+            "NMIXX", "fromis 9", "BTOB", "임영웅", "이찬원"
+        )
+    );
 
     public CollectResponse collectTracks(int decade) {
         String yearRange = toYearRange(decade);
         String accessToken = spotifyTokenService.getAccessToken();
 
+        List<String> artists = KOREAN_ARTISTS.get(decade);
         int newlyCollected = 0;
-        int offset = 0;
 
-        while (newlyCollected < TARGET && offset < MAX_OFFSET) {
-            List<SpotifySearchResponse.Item> items = searchSpotify(yearRange, accessToken, offset);
+        for (String artist : artists) {
+            if (newlyCollected >= TARGET) break;
 
-            if (items.isEmpty()) {
-                log.info("[Collect] Spotify 결과 없음, offset={}", offset);
-                break;
-            }
+            List<SpotifySearchResponse.Item> items = searchSpotifyByArtist(artist, yearRange, accessToken);
+            log.info("[Collect] 아티스트={}, 결과={}곡", artist, items.size());
 
             for (SpotifySearchResponse.Item item : items) {
                 if (newlyCollected >= TARGET) break;
-                if (item.getPopularity() < MIN_POPULARITY) continue;
 
                 // 이미 DB에 있으면 스킵
                 if (quizTrackMapper.existsBySpotifyTrackId(item.getTrackId())) {
@@ -53,11 +76,11 @@ public class GameCollectService {
                     continue;
                 }
 
-                String artist = item.getArtists() != null && !item.getArtists().isEmpty()
+                String trackArtist = item.getArtists() != null && !item.getArtists().isEmpty()
                         ? item.getArtists().get(0).getName() : "";
 
                 // Deezer preview 확인
-                String previewUrl = getDeezerPreview(item.getName(), artist);
+                String previewUrl = getDeezerPreview(item.getName(), trackArtist);
                 if (previewUrl == null) {
                     log.debug("[Collect] Deezer preview 없음 - title={}", item.getName());
                     continue;
@@ -71,7 +94,7 @@ public class GameCollectService {
 
                 quizTrackMapper.insert(QuizTrack.builder()
                         .title(item.getName())
-                        .artist(artist)
+                        .artist(trackArtist)
                         .albumImageUrl(albumImageUrl)
                         .previewUrl(previewUrl)
                         .decade(decade)
@@ -80,13 +103,11 @@ public class GameCollectService {
 
                 newlyCollected++;
                 log.info("[Collect] 저장 - [{}/{}] title={}, artist={}, popularity={}",
-                        newlyCollected, TARGET, item.getName(), artist, item.getPopularity());
+                        newlyCollected, TARGET, item.getName(), trackArtist, item.getPopularity());
             }
 
-            offset += SEARCH_LIMIT;
-
             // Spotify rate limit 방지 딜레이
-            try { Thread.sleep(300); } catch (InterruptedException ignored) {}
+            try { Thread.sleep(200); } catch (InterruptedException ignored) {}
         }
 
         int total = quizTrackMapper.countByDecade(decade);
@@ -94,12 +115,12 @@ public class GameCollectService {
         return new CollectResponse(decade, newlyCollected, total);
     }
 
-    private List<SpotifySearchResponse.Item> searchSpotify(String yearRange, String accessToken, int offset) {
+    private List<SpotifySearchResponse.Item> searchSpotifyByArtist(String artist, String yearRange, String accessToken) {
         try {
             SpotifySearchResponse response = spotifyWebClient
                     .get()
-                    .uri("/search?q={q}&type=track&limit={limit}&offset={offset}&market=KR",
-                            "year:" + yearRange + " genre:k-pop", SEARCH_LIMIT, offset)
+                    .uri("/search?q={q}&type=track&limit={limit}&market=KR",
+                            "artist:" + artist + " year:" + yearRange, SEARCH_LIMIT)
                     .header("Authorization", "Bearer " + accessToken)
                     .retrieve()
                     .bodyToMono(SpotifySearchResponse.class)
@@ -108,12 +129,9 @@ public class GameCollectService {
             if (response == null || response.getTracks() == null || response.getTracks().getItems() == null) {
                 return List.of();
             }
-            // popularity 필터 없이 원본 그대로 반환 (필터는 루프에서 처리)
-            List<SpotifySearchResponse.Item> items = response.getTracks().getItems();
-            log.info("[Collect] Spotify 검색 - offset={}, 결과={}곡", offset, items.size());
-            return items;
+            return response.getTracks().getItems();
         } catch (Exception e) {
-            log.warn("[Collect] Spotify 검색 실패 - offset={}, error={}", offset, e.getMessage());
+            log.warn("[Collect] Spotify 검색 실패 - artist={}, error={}", artist, e.getMessage());
             return List.of();
         }
     }
