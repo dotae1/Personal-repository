@@ -10,7 +10,9 @@ public record QuizTrackResponse(
         String previewUrl,
         String title,
         String artist,
-        String albumImageUrl
+        String albumImageUrl,
+        String titleNormalized,
+        String artistNormalized
 ) {
     public static QuizTrackResponse fromEntity(QuizTrack track) {
         return new QuizTrackResponse(
@@ -18,7 +20,9 @@ public record QuizTrackResponse(
                 track.getPreviewUrl(),
                 track.getTitle(),
                 track.getArtist(),
-                track.getAlbumImageUrl()
+                track.getAlbumImageUrl(),
+                normalize(track.getTitle()),
+                normalize(track.getArtist())
         );
     }
 
@@ -38,7 +42,26 @@ public record QuizTrackResponse(
                 previewUrl,
                 item.getName(),
                 artist,
-                imageUrl
+                imageUrl,
+                normalize(item.getName()),
+                normalize(artist)
         );
+    }
+
+    public static QuizTrackResponse fromGemini(String title, String artist, String previewUrl, String albumImageUrl) {
+        return new QuizTrackResponse(
+                null,
+                previewUrl,
+                title,
+                artist,
+                albumImageUrl,
+                normalize(title),
+                normalize(artist)
+        );
+    }
+
+    private static String normalize(String value) {
+        if (value == null) return null;
+        return value.replaceAll("\\s+", "").toLowerCase();
     }
 }
