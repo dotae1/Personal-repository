@@ -9,8 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -23,43 +22,50 @@ public class GameService {
     private final Random random = new Random();
 
     private static final int SEARCH_LIMIT = 10;
+    private static final int MIN_POPULARITY = 40;
+    private static final int MAX_OFFSET = 150;
 
-    /**
-     * 연대별 랜덤 퀴즈 트랙 반환
-     * decade: 1990 / 2000 / 2010 / 2020
-     */
     public QuizTrackResponse getQuizTrack(int decade) {
         String yearRange = toYearRange(decade);
         String accessToken = spotifyTokenService.getAccessToken();
 
-        int offset = random.nextInt(990);
-        List<SpotifySearchResponse.Item> candidates = searchSpotify(yearRange, accessToken, offset);
+        // 서로 다른 offset으로 2회 검색 → 최대 20곡 풀 구성
+        Set<String> seenIds = new HashSet<>();
+        List<SpotifySearchResponse.Item> pool = new ArrayList<>();
 
-        if (candidates.isEmpty()) {
-            candidates = searchSpotify(yearRange, accessToken, 0);
+        int offset1 = random.nextInt(MAX_OFFSET);
+        int offset2 = random.nextInt(MAX_OFFSET);
+
+        for (int offset : new int[]{offset1, offset2}) {
+            searchSpotify(yearRange, accessToken, offset).stream()
+                    .filter(item -> item.getPopularity() >= MIN_POPULARITY)
+                    .filter(item -> seenIds.add(item.getTrackId()))
+                    .forEach(pool::add);
         }
 
-        if (candidates.isEmpty()) {
+        // popularity 기준 미달 시 offset=0으로 제한 없이 재시도
+        if (pool.isEmpty()) {
+            log.info("[Game] popularity 기준 미달, offset=0 재시도 - yearRange={}", yearRange);
+            pool = searchSpotify(yearRange, accessToken, 0);
+        }
+
+        if (pool.isEmpty()) {
             throw new IllegalStateException("해당 연대의 트랙을 찾을 수 없습니다.");
         }
 
-        // Deezer preview가 있는 트랙을 찾을 때까지 순회
-        for (int i = 0; i < candidates.size(); i++) {
-            SpotifySearchResponse.Item picked = candidates.get(random.nextInt(candidates.size()));
-            String artist = picked.getArtists() != null && !picked.getArtists().isEmpty()
-                    ? picked.getArtists().get(0).getName() : "";
+        // popularity 내림차순 정렬 후 상위 절반에서 랜덤 선택 (인기곡 위주 + 다양성 확보)
+        pool.sort((a, b) -> b.getPopularity() - a.getPopularity());
+        int pickRange = Math.max(1, pool.size() / 2);
+        SpotifySearchResponse.Item picked = pool.get(random.nextInt(pickRange));
 
-            String previewUrl = getDeezerPreview(picked.getName(), artist);
-            if (previewUrl != null) {
-                log.info("[Game] 퀴즈 트랙 선택 - decade={}, title={}", decade, picked.getName());
-                return QuizTrackResponse.from(picked, previewUrl);
-            }
-        }
+        String artist = picked.getArtists() != null && !picked.getArtists().isEmpty()
+                ? picked.getArtists().get(0).getName() : "";
 
-        // 모두 실패 시 첫 번째 트랙을 previewUrl=null로 반환
-        SpotifySearchResponse.Item fallback = candidates.get(0);
-        log.warn("[Game] Deezer preview 없음, previewUrl=null 반환 - title={}", fallback.getName());
-        return QuizTrackResponse.from(fallback, null);
+        String previewUrl = getDeezerPreview(picked.getName(), artist);
+        log.info("[Game] 퀴즈 트랙 선택 - decade={}, title={}, artist={}, popularity={}",
+                decade, picked.getName(), artist, picked.getPopularity());
+
+        return QuizTrackResponse.from(picked, previewUrl);
     }
 
     private List<SpotifySearchResponse.Item> searchSpotify(String yearRange, String accessToken, int offset) {
