@@ -16,6 +16,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @Service
@@ -31,6 +32,14 @@ public class GameCollectService {
     private static final int TARGET = 50;
     private static final int BATCH_SIZE = 15;
     private static final int MAX_GEMINI_CALLS = 10;
+
+    public void collectTracksAsync(String decade) {
+        CompletableFuture.runAsync(() -> collectTracks(decade));
+    }
+
+    public int countByDecade(String decade) {
+        return quizTrackMapper.countByDecade(decade);
+    }
 
     public CollectResponse collectTracks(String decade) {
         String decadeLabel = toDecadeLabel(decade);
@@ -104,8 +113,12 @@ public class GameCollectService {
                 - 원곡만 (일본어 버전, MR버전, 리믹스, 라이브 버전 절대 제외)
                 - Apple Music/iTunes에서 검색 가능한 곡
                 - 아래 제목은 반드시 제외: %s
-                - JSON 배열로만 응답 (다른 텍스트 없이):
-                [{"title": "한국어제목", "artist": "한국어아티스트명", "searchQuery": "English artist and song title for iTunes search"}]
+                - 아래 JSON 배열 형식으로만 응답 (설명 없이, 코드블록 없이):
+                [
+                  {"title": "한국어제목", "artist": "한국어아티스트명", "searchQuery": "IU Celebrity"},
+                  {"title": "한국어제목2", "artist": "한국어아티스트명2", "searchQuery": "BTS Dynamite"}
+                ]
+                searchQuery는 반드시 영어로 작성 (아티스트 영어명 + 곡 제목). 예: "IU Celebrity", "BTS Butter", "NewJeans Hype Boy", "BLACKPINK How You Like That"
                 """, decadeLabel, BATCH_SIZE, exclusionList);
 
         GenerateContentResponse response = geminiClient.models.generateContent(
