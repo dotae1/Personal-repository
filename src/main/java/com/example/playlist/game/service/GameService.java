@@ -86,7 +86,12 @@ public class GameService {
         String json = response.text().trim()
                 .replaceAll("```json", "").replaceAll("```", "").trim();
 
-        return objectMapper.readValue(json, SongInfo.class);
+        log.info("[Game] Gemini raw json={}", json);
+
+        com.fasterxml.jackson.databind.JsonNode node = objectMapper.readTree(json);
+        String title = node.get("title").asText();
+        String artist = node.get("artist").asText();
+        return new SongInfo(title, artist);
     }
 
     private String toDecadeLabel(int decade) {
@@ -99,8 +104,5 @@ public class GameService {
         };
     }
 
-    record SongInfo(
-            @com.fasterxml.jackson.annotation.JsonProperty("title") String title,
-            @com.fasterxml.jackson.annotation.JsonProperty("artist") String artist
-    ) {}
+    record SongInfo(String title, String artist) {}
 }
