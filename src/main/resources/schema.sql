@@ -87,3 +87,15 @@ CREATE TABLE IF NOT EXISTS playlist_tag
     tag_id      BIGINT REFERENCES tag (id) ON DELETE CASCADE,
     PRIMARY KEY (playlist_id, tag_id)
 );
+
+CREATE TABLE IF NOT EXISTS quiz_track
+(
+    id                BIGSERIAL PRIMARY KEY,
+    title             VARCHAR(255) NOT NULL,
+    artist            VARCHAR(255) NOT NULL,
+    album_image_url   TEXT,
+    preview_url       TEXT         NOT NULL,
+    decade            INTEGER      NOT NULL,
+    spotify_track_id  VARCHAR(100) NOT NULL UNIQUE,
+    created_at        TIMESTAMP    DEFAULT NOW()
+);

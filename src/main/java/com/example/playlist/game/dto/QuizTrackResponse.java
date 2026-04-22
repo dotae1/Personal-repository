@@ -1,5 +1,6 @@
 package com.example.playlist.game.dto;
 
+import com.example.playlist.game.entity.QuizTrack;
 import com.example.playlist.spotify.dto.SpotifySearchResponse;
 
 import java.util.List;
@@ -11,6 +12,16 @@ public record QuizTrackResponse(
         String artist,
         String albumImageUrl
 ) {
+    public static QuizTrackResponse fromEntity(QuizTrack track) {
+        return new QuizTrackResponse(
+                track.getSpotifyTrackId(),
+                track.getPreviewUrl(),
+                track.getTitle(),
+                track.getArtist(),
+                track.getAlbumImageUrl()
+        );
+    }
+
     public static QuizTrackResponse from(SpotifySearchResponse.Item item, String previewUrl) {
         String artist = item.getArtists() != null && !item.getArtists().isEmpty()
                 ? item.getArtists().get(0).getName()
