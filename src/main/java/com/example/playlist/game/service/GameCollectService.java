@@ -25,7 +25,7 @@ public class GameCollectService {
 
     private static final int SEARCH_LIMIT = 10;
     private static final int TARGET = 100;
-    private static final int MIN_POPULARITY = 20;
+    private static final int MIN_POPULARITY = 0;
     private static final int MAX_OFFSET = 500; // 최대 500곡 탐색
 
     public CollectResponse collectTracks(int decade) {
@@ -84,6 +84,9 @@ public class GameCollectService {
             }
 
             offset += SEARCH_LIMIT;
+
+            // Spotify rate limit 방지 딜레이
+            try { Thread.sleep(300); } catch (InterruptedException ignored) {}
         }
 
         int total = quizTrackMapper.countByDecade(decade);
@@ -105,7 +108,10 @@ public class GameCollectService {
             if (response == null || response.getTracks() == null || response.getTracks().getItems() == null) {
                 return List.of();
             }
-            return response.getTracks().getItems();
+            // popularity 필터 없이 원본 그대로 반환 (필터는 루프에서 처리)
+            List<SpotifySearchResponse.Item> items = response.getTracks().getItems();
+            log.info("[Collect] Spotify 검색 - offset={}, 결과={}곡", offset, items.size());
+            return items;
         } catch (Exception e) {
             log.warn("[Collect] Spotify 검색 실패 - offset={}, error={}", offset, e.getMessage());
             return List.of();
