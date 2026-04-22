@@ -32,10 +32,10 @@ public class GameService {
                 SongInfo song = recommendFromGemini(decadeLabel, attempt);
                 log.info("[Game] Gemini 추천 - title={}, artist={}", song.title, song.artist);
 
-                // 2. Deezer에서 preview URL 조회
+                // 2. Deezer에서 preview URL 조회 (영어 검색어 사용)
                 DeezerSearchResponse deezerRes = deezerWebClient
                         .get()
-                        .uri("/search?q={q}&limit=1", song.artist + " " + song.title)
+                        .uri("/search?q={q}&limit=1", song.searchQuery)
                         .retrieve()
                         .bodyToMono(DeezerSearchResponse.class)
                         .block();
@@ -69,12 +69,12 @@ public class GameService {
                 %s 한국 가요/K-pop 노래 중 랜덤으로 1곡만 추천해줘.
                 조건:
                 - 반드시 한국 가수의 한국 노래
-                - 제목과 가수명은 반드시 한국어로 작성 (예: 방탄소년단, 아이유)
-                - 영어 아티스트명도 한국어 표기로 (예: BTS → 방탄소년단)
+                - title과 artist는 한국어로 (예: 방탄소년단, 아이유)
+                - searchQuery는 Deezer 검색용 영어 표기 (예: "BTS Dynamite", "IU Celebrity")
                 - 실제 스트리밍 서비스에 존재하는 곡
                 - 매번 다른 곡 추천
                 - 아래 JSON 형식으로만 응답 (다른 텍스트 없이):
-                {"title": "곡제목", "artist": "아티스트명"}
+                {"title": "곡제목(한국어)", "artist": "아티스트명(한국어)", "searchQuery": "영어 검색어"}
                 """, decadeLabel);
 
         GenerateContentResponse response = geminiClient.models.generateContent(
@@ -97,7 +97,8 @@ public class GameService {
 
         String title = node.get("title").asText();
         String artist = node.get("artist").asText();
-        return new SongInfo(title, artist);
+        String searchQuery = node.has("searchQuery") ? node.get("searchQuery").asText() : artist + " " + title;
+        return new SongInfo(title, artist, searchQuery);
     }
 
     private String toDecadeLabel(int decade) {
@@ -110,5 +111,5 @@ public class GameService {
         };
     }
 
-    record SongInfo(String title, String artist) {}
+    record SongInfo(String title, String artist, String searchQuery) {}
 }
