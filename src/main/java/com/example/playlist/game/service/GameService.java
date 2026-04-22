@@ -1,5 +1,6 @@
 package com.example.playlist.game.service;
 
+import com.example.playlist.game.dto.DeezerSearchResponse;
 import com.example.playlist.game.dto.QuizTrackResponse;
 import com.example.playlist.spotify.dto.SpotifySearchResponse;
 import com.example.playlist.spotify.service.SpotifyTokenService;
@@ -18,40 +19,50 @@ public class GameService {
 
     private final SpotifyTokenService spotifyTokenService;
     private final WebClient spotifyWebClient;
+    private final WebClient deezerWebClient;
     private final Random random = new Random();
 
     private static final int SEARCH_LIMIT = 10;
 
     /**
-     * 연대별 랜덤 퀴즈 트랙 반환 (preview_url 있는 것만)
+     * 연대별 랜덤 퀴즈 트랙 반환
      * decade: 1990 / 2000 / 2010 / 2020
      */
     public QuizTrackResponse getQuizTrack(int decade) {
         String yearRange = toYearRange(decade);
         String accessToken = spotifyTokenService.getAccessToken();
 
-        // 랜덤 offset으로 다양한 곡 제공 (최대 200 범위)
         int offset = random.nextInt(990);
+        List<SpotifySearchResponse.Item> candidates = searchSpotify(yearRange, accessToken, offset);
 
-        List<SpotifySearchResponse.Item> candidates = searchWithPreview(yearRange, accessToken, offset);
-
-        // 결과가 없으면 offset=0으로 재시도
         if (candidates.isEmpty()) {
-            log.info("[Game] preview_url 없음, offset=0 재시도 - yearRange={}", yearRange);
-            candidates = searchWithPreview(yearRange, accessToken, 0);
+            candidates = searchSpotify(yearRange, accessToken, 0);
         }
 
         if (candidates.isEmpty()) {
-            throw new IllegalStateException("해당 연대의 미리듣기 가능한 트랙을 찾을 수 없습니다.");
+            throw new IllegalStateException("해당 연대의 트랙을 찾을 수 없습니다.");
         }
 
-        SpotifySearchResponse.Item picked = candidates.get(random.nextInt(candidates.size()));
-        log.info("[Game] 퀴즈 트랙 선택 - decade={}, title={}", decade, picked.getName());
+        // Deezer preview가 있는 트랙을 찾을 때까지 순회
+        for (int i = 0; i < candidates.size(); i++) {
+            SpotifySearchResponse.Item picked = candidates.get(random.nextInt(candidates.size()));
+            String artist = picked.getArtists() != null && !picked.getArtists().isEmpty()
+                    ? picked.getArtists().get(0).getName() : "";
 
-        return QuizTrackResponse.from(picked);
+            String previewUrl = getDeezerPreview(picked.getName(), artist);
+            if (previewUrl != null) {
+                log.info("[Game] 퀴즈 트랙 선택 - decade={}, title={}", decade, picked.getName());
+                return QuizTrackResponse.from(picked, previewUrl);
+            }
+        }
+
+        // 모두 실패 시 첫 번째 트랙을 previewUrl=null로 반환
+        SpotifySearchResponse.Item fallback = candidates.get(0);
+        log.warn("[Game] Deezer preview 없음, previewUrl=null 반환 - title={}", fallback.getName());
+        return QuizTrackResponse.from(fallback, null);
     }
 
-    private List<SpotifySearchResponse.Item> searchWithPreview(String yearRange, String accessToken, int offset) {
+    private List<SpotifySearchResponse.Item> searchSpotify(String yearRange, String accessToken, int offset) {
         SpotifySearchResponse response = spotifyWebClient
                 .get()
                 .uri("/search?q={q}&type=track&limit={limit}&offset={offset}&market=KR",
@@ -65,9 +76,28 @@ public class GameService {
             return List.of();
         }
 
-        return response.getTracks().getItems().stream()
-                .filter(item -> item.getPreviewUrl() != null && !item.getPreviewUrl().isBlank())
-                .toList();
+        return response.getTracks().getItems();
+    }
+
+    private String getDeezerPreview(String title, String artist) {
+        try {
+            DeezerSearchResponse response = deezerWebClient
+                    .get()
+                    .uri("/search?q={q}&limit=1", artist + " " + title)
+                    .retrieve()
+                    .bodyToMono(DeezerSearchResponse.class)
+                    .block();
+
+            if (response == null || response.getData() == null || response.getData().isEmpty()) {
+                return null;
+            }
+
+            String preview = response.getData().get(0).getPreview();
+            return (preview != null && !preview.isBlank()) ? preview : null;
+        } catch (Exception e) {
+            log.warn("[Game] Deezer 조회 실패 - title={}, error={}", title, e.getMessage());
+            return null;
+        }
     }
 
     private String toYearRange(int decade) {

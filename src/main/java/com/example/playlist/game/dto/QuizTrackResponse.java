@@ -11,7 +11,7 @@ public record QuizTrackResponse(
         String artist,
         String albumImageUrl
 ) {
-    public static QuizTrackResponse from(SpotifySearchResponse.Item item) {
+    public static QuizTrackResponse from(SpotifySearchResponse.Item item, String previewUrl) {
         String artist = item.getArtists() != null && !item.getArtists().isEmpty()
                 ? item.getArtists().get(0).getName()
                 : "Unknown";
@@ -24,7 +24,7 @@ public record QuizTrackResponse(
 
         return new QuizTrackResponse(
                 item.getTrackId(),
-                item.getPreviewUrl(),
+                previewUrl,
                 item.getName(),
                 artist,
                 imageUrl
