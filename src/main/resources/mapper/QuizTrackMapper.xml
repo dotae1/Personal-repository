@@ -5,8 +5,8 @@
 <mapper namespace="com.example.playlist.game.repository.QuizTrackMapper">
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO quiz_track (title, artist, album_image_url, preview_url, decade, itunes_track_id)
-        VALUES (#{title}, #{artist}, #{albumImageUrl}, #{previewUrl}, #{decade}, #{itunesTrackId})
+        INSERT INTO quiz_track (title, artist, title_alias, artist_alias, album_image_url, preview_url, decade, itunes_track_id)
+        VALUES (#{title}, #{artist}, #{titleAlias}, #{artistAlias}, #{albumImageUrl}, #{previewUrl}, #{decade}, #{itunesTrackId})
     </insert>
 
     <select id="existsByItunesTrackId" resultType="boolean">
@@ -22,7 +22,7 @@
     </select>
 
     <select id="findRandomByDecade" resultType="com.example.playlist.game.entity.QuizTrack">
-        SELECT id, title, artist, album_image_url, preview_url, decade, itunes_track_id, created_at
+        SELECT id, title, artist, title_alias, artist_alias, album_image_url, preview_url, decade, itunes_track_id, created_at
         FROM quiz_track
         WHERE decade = #{decade}
         ORDER BY RANDOM()

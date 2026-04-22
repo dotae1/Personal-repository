@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import com.example.playlist.game.service.GameCollectService;
 
 @RestController
 @RequiredArgsConstructor
@@ -44,14 +45,13 @@ public class GameController {
     }
 
     @Operation(
-            summary = "[Admin] 연대별 퀴즈 트랙 수 조회",
-            description = "decade: 1990_EARLY / 1990_LATE / 2000 / 2010 / 2020"
+            summary = "[Admin] 수집 진행 상태 조회",
+            description = "status: IDLE(미시작) / RUNNING(진행중) / COMPLETED(완료). decade: 1990_EARLY / 1990_LATE / 2000 / 2010 / 2020"
     )
-    @GetMapping("/admin/game/count")
-    public ResponseEntity<Map<String, Object>> countTracks(
+    @GetMapping("/admin/game/collect/status")
+    public ResponseEntity<GameCollectService.CollectStatus> collectStatus(
             @RequestParam String decade
     ) {
-        int count = gameCollectService.countByDecade(decade);
-        return ResponseEntity.ok(Map.of("decade", decade, "count", count));
+        return ResponseEntity.ok(gameCollectService.getStatus(decade));
     }
 }
