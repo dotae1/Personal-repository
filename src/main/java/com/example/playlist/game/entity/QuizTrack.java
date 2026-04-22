@@ -13,7 +13,7 @@ public class QuizTrack {
     private String artist;
     private String albumImageUrl;
     private String previewUrl;
-    private int decade;
-    private String spotifyTrackId;
+    private String decade;
+    private String itunesTrackId;
     private LocalDateTime createdAt;
 }

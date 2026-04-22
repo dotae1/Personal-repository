@@ -28,4 +28,11 @@ public class WebClientConfig {
                 .build();
     }
 
+    @Bean
+    public WebClient itunesWebClient() {
+        return WebClient.builder()
+                .baseUrl("https://itunes.apple.com")
+                .build();
+    }
+
 }

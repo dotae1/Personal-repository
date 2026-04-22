@@ -1,7 +1,7 @@
 package com.example.playlist.game.dto;
 
 public record CollectResponse(
-        int decade,
+        String decade,
         int newlyCollected,
         int totalInDb
 ) {}
