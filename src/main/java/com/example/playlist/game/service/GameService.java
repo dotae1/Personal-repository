@@ -66,7 +66,7 @@ public class GameService {
         SpotifySearchResponse response = spotifyWebClient
                 .get()
                 .uri("/search?q={q}&type=track&limit={limit}&offset={offset}&market=KR",
-                        "year:" + yearRange, SEARCH_LIMIT, offset)
+                        "year:" + yearRange + " genre:k-pop", SEARCH_LIMIT, offset)
                 .header("Authorization", "Bearer " + accessToken)
                 .retrieve()
                 .bodyToMono(SpotifySearchResponse.class)
