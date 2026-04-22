@@ -20,7 +20,7 @@ public class GameService {
     private final WebClient spotifyWebClient;
     private final Random random = new Random();
 
-    private static final int SEARCH_LIMIT = 50;
+    private static final int SEARCH_LIMIT = 10;
 
     /**
      * 연대별 랜덤 퀴즈 트랙 반환 (preview_url 있는 것만)
@@ -31,7 +31,7 @@ public class GameService {
         String accessToken = spotifyTokenService.getAccessToken();
 
         // 랜덤 offset으로 다양한 곡 제공 (최대 200 범위)
-        int offset = random.nextInt(200);
+        int offset = random.nextInt(990);
 
         List<SpotifySearchResponse.Item> candidates = searchWithPreview(yearRange, accessToken, offset);
 
