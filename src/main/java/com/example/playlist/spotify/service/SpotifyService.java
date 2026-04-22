@@ -36,7 +36,16 @@ public class SpotifyService {
                 .header("Authorization", "Bearer " + accessToken)
                 .retrieve()
                 .bodyToMono(SpotifySearchResponse.class)
-                .map(response -> SpotifyTrack.from(response.getTracks().getItems().get(0), title, artist));
+                .flatMap(response -> {
+                    List<SpotifySearchResponse.Item> items = response.getTracks() != null
+                            ? response.getTracks().getItems()
+                            : null;
+                    if (items == null || items.isEmpty()) {
+                        log.warn("[Spotify] 검색 결과 없음 - artist={}, title={}", artist, title);
+                        return Mono.empty();
+                    }
+                    return Mono.just(SpotifyTrack.from(items.get(0), title, artist));
+                });
     }
 
     // ─────────────────────────────────────────────

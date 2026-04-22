@@ -23,6 +23,9 @@ public class SpotifySearchResponse {
 
         private String name;
 
+        @JsonProperty("preview_url")
+        private String previewUrl;
+
         private List<Artist> artists;
 
         private Album album;
