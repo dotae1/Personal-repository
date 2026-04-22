@@ -135,14 +135,18 @@ public class GameCollectService {
 
     private ItunesSearchResponse.ItunesTrack findOnItunes(String searchQuery) {
         try {
-            ItunesSearchResponse response = itunesWebClient
+            // iTunes API가 text/javascript 콘텐츠 타입으로 응답하므로 String으로 받아 수동 파싱
+            String body = itunesWebClient
                     .get()
                     .uri("/search?term={term}&country=KR&media=music&entity=song&limit=1", searchQuery)
                     .retrieve()
-                    .bodyToMono(ItunesSearchResponse.class)
+                    .bodyToMono(String.class)
                     .block();
 
-            if (response == null || response.getResultCount() == 0 || response.getResults().isEmpty()) {
+            if (body == null) return null;
+
+            ItunesSearchResponse response = objectMapper.readValue(body, ItunesSearchResponse.class);
+            if (response.getResultCount() == 0 || response.getResults() == null || response.getResults().isEmpty()) {
                 return null;
             }
             return response.getResults().get(0);
