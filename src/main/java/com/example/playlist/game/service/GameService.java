@@ -99,5 +99,8 @@ public class GameService {
         };
     }
 
-    record SongInfo(String title, String artist) {}
+    record SongInfo(
+            @com.fasterxml.jackson.annotation.JsonProperty("title") String title,
+            @com.fasterxml.jackson.annotation.JsonProperty("artist") String artist
+    ) {}
 }
