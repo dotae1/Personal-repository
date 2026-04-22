@@ -50,14 +50,18 @@ public class GameCollectService {
                     seenTitles.add(song.title());
 
                     ItunesSearchResponse.ItunesTrack track = findOnItunes(song.searchQuery());
-                    if (track == null || track.getPreviewUrl() == null || track.getPreviewUrl().isBlank()) {
-                        log.debug("[Collect] iTunes preview 없음 - title={}", song.title());
+                    if (track == null) {
+                        log.info("[Collect] iTunes 결과 없음 - title={}, query={}", song.title(), song.searchQuery());
+                        continue;
+                    }
+                    if (track.getPreviewUrl() == null || track.getPreviewUrl().isBlank()) {
+                        log.info("[Collect] iTunes preview URL 없음 - title={}, trackName={}", song.title(), track.getTrackName());
                         continue;
                     }
 
                     String itunesTrackId = String.valueOf(track.getTrackId());
                     if (quizTrackMapper.existsByItunesTrackId(itunesTrackId)) {
-                        log.debug("[Collect] 중복 스킵 - title={}", song.title());
+                        log.info("[Collect] 중복 스킵 - title={}", song.title());
                         continue;
                     }
 
@@ -105,12 +109,12 @@ public class GameCollectService {
                 """, decadeLabel, BATCH_SIZE, exclusionList);
 
         GenerateContentResponse response = geminiClient.models.generateContent(
-                "gemini-2.0-flash", prompt, geminiConfig);
+                "gemini-2.5-flash-preview-04-17", prompt, geminiConfig);
 
         String json = response.text().trim()
                 .replaceAll("```json", "").replaceAll("```", "").trim();
 
-        log.debug("[Collect] Gemini raw={}", json);
+        log.info("[Collect] Gemini raw={}", json);
 
         JsonNode node = objectMapper.readTree(json);
         if (!node.isArray() && node.has("songs")) {
