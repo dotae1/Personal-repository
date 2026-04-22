@@ -1,168 +1,163 @@
 package com.example.playlist.game.service;
 
 import com.example.playlist.game.dto.CollectResponse;
-import com.example.playlist.game.dto.DeezerSearchResponse;
+import com.example.playlist.game.dto.ItunesSearchResponse;
 import com.example.playlist.game.entity.QuizTrack;
 import com.example.playlist.game.repository.QuizTrackMapper;
-import com.example.playlist.spotify.dto.SpotifySearchResponse;
-import com.example.playlist.spotify.service.SpotifyTokenService;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.genai.Client;
+import com.google.genai.types.GenerateContentConfig;
+import com.google.genai.types.GenerateContentResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class GameCollectService {
 
-    private final SpotifyTokenService spotifyTokenService;
-    private final WebClient spotifyWebClient;
-    private final WebClient deezerWebClient;
+    private final Client geminiClient;
+    private final GenerateContentConfig geminiConfig;
+    private final WebClient itunesWebClient;
     private final QuizTrackMapper quizTrackMapper;
+    private final ObjectMapper objectMapper;
 
-    private static final int SEARCH_LIMIT = 10;
-    private static final int TARGET = 100;
+    private static final int TARGET = 50;
+    private static final int BATCH_SIZE = 15;
+    private static final int MAX_GEMINI_CALLS = 10;
 
-    private static final Map<Integer, List<String>> KOREAN_ARTISTS = Map.of(
-        1990, List.of(
-            "서태지와 아이들", "김건모", "신승훈", "H.O.T.", "S.E.S.",
-            "god", "Fin.K.L", "젝스키스", "이승환", "조성모", "클론",
-            "박진영", "유승준", "룰라", "015B", "김광석", "이적",
-            "노이즈", "솔리드", "듀스", "DJ DOC", "토이", "패닉"
-        ),
-        2000, List.of(
-            "TVXQ", "Big Bang", "Wonder Girls", "Girls Generation", "2NE1",
-            "Super Junior", "KARA", "2PM", "SHINee", "BoA", "SS501",
-            "이효리", "비", "버즈", "브라운아이드걸스", "에픽하이",
-            "원더걸스", "f(x)", "씨스타", "4Minute", "지드래곤", "태양"
-        ),
-        2010, List.of(
-            "BTS", "EXO", "TWICE", "BLACKPINK", "Red Velvet",
-            "IU", "PSY", "INFINITE", "SISTAR", "GOT7", "Wanna One",
-            "NCT 127", "MAMAMOO", "AOA", "B2ST", "2AM", "케이윌",
-            "악동뮤지션", "볼빨간사춘기", "선미", "CL", "지코"
-        ),
-        2020, List.of(
-            "BTS", "BLACKPINK", "aespa", "IVE", "NewJeans",
-            "Stray Kids", "ITZY", "SEVENTEEN", "LE SSERAFIM", "NCT 127",
-            "ENHYPEN", "G I-DLE", "TXT", "ATEEZ", "Kep1er",
-            "NMIXX", "fromis 9", "BTOB", "임영웅", "이찬원"
-        )
-    );
-
-    public CollectResponse collectTracks(int decade) {
-        String yearRange = toYearRange(decade);
-        String accessToken = spotifyTokenService.getAccessToken();
-
-        List<String> artists = KOREAN_ARTISTS.get(decade);
+    public CollectResponse collectTracks(String decade) {
+        String decadeLabel = toDecadeLabel(decade);
         int newlyCollected = 0;
 
-        for (String artist : artists) {
-            if (newlyCollected >= TARGET) break;
+        // DB에 이미 있는 제목을 Gemini 제외 목록으로 활용
+        List<String> seenTitles = new ArrayList<>(quizTrackMapper.findTitlesByDecade(decade));
+        log.info("[Collect] 시작 - decade={}, 기존 DB={}곡", decade, seenTitles.size());
 
-            List<SpotifySearchResponse.Item> items = searchSpotifyByArtist(artist, yearRange, accessToken);
-            log.info("[Collect] 아티스트={}, 결과={}곡", artist, items.size());
+        for (int attempt = 0; attempt < MAX_GEMINI_CALLS && newlyCollected < TARGET; attempt++) {
+            try {
+                List<SongRecommendation> songs = recommendBatchFromGemini(decadeLabel, seenTitles);
+                log.info("[Collect] Gemini 추천 {}곡 - attempt={}", songs.size(), attempt + 1);
 
-            for (SpotifySearchResponse.Item item : items) {
-                if (newlyCollected >= TARGET) break;
+                for (SongRecommendation song : songs) {
+                    if (newlyCollected >= TARGET) break;
+                    seenTitles.add(song.title());
 
-                // 이미 DB에 있으면 스킵
-                if (quizTrackMapper.existsBySpotifyTrackId(item.getTrackId())) {
-                    log.debug("[Collect] 중복 스킵 - title={}", item.getName());
-                    continue;
+                    ItunesSearchResponse.ItunesTrack track = findOnItunes(song.searchQuery());
+                    if (track == null || track.getPreviewUrl() == null || track.getPreviewUrl().isBlank()) {
+                        log.debug("[Collect] iTunes preview 없음 - title={}", song.title());
+                        continue;
+                    }
+
+                    String itunesTrackId = String.valueOf(track.getTrackId());
+                    if (quizTrackMapper.existsByItunesTrackId(itunesTrackId)) {
+                        log.debug("[Collect] 중복 스킵 - title={}", song.title());
+                        continue;
+                    }
+
+                    quizTrackMapper.insert(QuizTrack.builder()
+                            .title(song.title())
+                            .artist(song.artist())
+                            .albumImageUrl(track.getArtworkUrl())
+                            .previewUrl(track.getPreviewUrl())
+                            .decade(decade)
+                            .itunesTrackId(itunesTrackId)
+                            .build());
+
+                    newlyCollected++;
+                    log.info("[Collect] 저장 [{}/{}] title={}, artist={}", newlyCollected, TARGET, song.title(), song.artist());
                 }
 
-                String trackArtist = item.getArtists() != null && !item.getArtists().isEmpty()
-                        ? item.getArtists().get(0).getName() : "";
+                // iTunes rate limit 방지
+                Thread.sleep(300);
 
-                // Deezer preview 확인
-                String previewUrl = getDeezerPreview(item.getName(), trackArtist);
-                if (previewUrl == null) {
-                    log.debug("[Collect] Deezer preview 없음 - title={}", item.getName());
-                    continue;
-                }
-
-                String albumImageUrl = null;
-                if (item.getAlbum() != null && item.getAlbum().getImages() != null
-                        && !item.getAlbum().getImages().isEmpty()) {
-                    albumImageUrl = item.getAlbum().getImages().get(0).getUrl();
-                }
-
-                quizTrackMapper.insert(QuizTrack.builder()
-                        .title(item.getName())
-                        .artist(trackArtist)
-                        .albumImageUrl(albumImageUrl)
-                        .previewUrl(previewUrl)
-                        .decade(decade)
-                        .spotifyTrackId(item.getTrackId())
-                        .build());
-
-                newlyCollected++;
-                log.info("[Collect] 저장 - [{}/{}] title={}, artist={}, popularity={}",
-                        newlyCollected, TARGET, item.getName(), trackArtist, item.getPopularity());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            } catch (Exception e) {
+                log.warn("[Collect] Gemini 추천 실패 - attempt={}, error={}", attempt + 1, e.getMessage());
             }
-
-            // Spotify rate limit 방지 딜레이
-            try { Thread.sleep(200); } catch (InterruptedException ignored) {}
         }
 
         int total = quizTrackMapper.countByDecade(decade);
-        log.info("[Collect] 완료 - decade={}, 신규={}, DB총={}", decade, newlyCollected, total);
+        log.info("[Collect] 완료 - decade={}, 신규={}곡, DB총={}곡", decade, newlyCollected, total);
         return new CollectResponse(decade, newlyCollected, total);
     }
 
-    private List<SpotifySearchResponse.Item> searchSpotifyByArtist(String artist, String yearRange, String accessToken) {
-        try {
-            SpotifySearchResponse response = spotifyWebClient
-                    .get()
-                    .uri("/search?q={q}&type=track&limit={limit}&market=KR",
-                            "artist:" + artist + " year:" + yearRange, SEARCH_LIMIT)
-                    .header("Authorization", "Bearer " + accessToken)
-                    .retrieve()
-                    .bodyToMono(SpotifySearchResponse.class)
-                    .block();
+    private List<SongRecommendation> recommendBatchFromGemini(String decadeLabel, List<String> excludeTitles) throws Exception {
+        String exclusionList = excludeTitles.isEmpty() ? "없음" : String.join(", ", excludeTitles);
 
-            if (response == null || response.getTracks() == null || response.getTracks().getItems() == null) {
-                return List.of();
-            }
-            return response.getTracks().getItems();
-        } catch (Exception e) {
-            log.warn("[Collect] Spotify 검색 실패 - artist={}, error={}", artist, e.getMessage());
-            return List.of();
+        String prompt = String.format("""
+                %s 한국 가요/K-pop 중 유명한 노래 %d곡을 추천해줘.
+                조건:
+                - 사람들이 노래만 듣고 제목을 맞출 수 있는 유명한 곡
+                - 원곡만 (일본어 버전, MR버전, 리믹스, 라이브 버전 절대 제외)
+                - Apple Music/iTunes에서 검색 가능한 곡
+                - 아래 제목은 반드시 제외: %s
+                - JSON 배열로만 응답 (다른 텍스트 없이):
+                [{"title": "한국어제목", "artist": "한국어아티스트명", "searchQuery": "English artist and song title for iTunes search"}]
+                """, decadeLabel, BATCH_SIZE, exclusionList);
+
+        GenerateContentResponse response = geminiClient.models.generateContent(
+                "gemini-2.0-flash", prompt, geminiConfig);
+
+        String json = response.text().trim()
+                .replaceAll("```json", "").replaceAll("```", "").trim();
+
+        log.debug("[Collect] Gemini raw={}", json);
+
+        JsonNode node = objectMapper.readTree(json);
+        if (!node.isArray() && node.has("songs")) {
+            node = node.get("songs");
         }
+
+        List<SongRecommendation> result = new ArrayList<>();
+        for (JsonNode item : node) {
+            String title = item.path("title").asText(null);
+            String artist = item.path("artist").asText(null);
+            String searchQuery = item.path("searchQuery").asText(null);
+            if (title == null || artist == null) continue;
+            if (searchQuery == null) searchQuery = artist + " " + title;
+            result.add(new SongRecommendation(title, artist, searchQuery));
+        }
+        return result;
     }
 
-    private String getDeezerPreview(String title, String artist) {
+    private ItunesSearchResponse.ItunesTrack findOnItunes(String searchQuery) {
         try {
-            DeezerSearchResponse response = deezerWebClient
+            ItunesSearchResponse response = itunesWebClient
                     .get()
-                    .uri("/search?q={q}&limit=1", artist + " " + title)
+                    .uri("/search?term={term}&country=KR&media=music&entity=song&limit=1", searchQuery)
                     .retrieve()
-                    .bodyToMono(DeezerSearchResponse.class)
+                    .bodyToMono(ItunesSearchResponse.class)
                     .block();
 
-            if (response == null || response.getData() == null || response.getData().isEmpty()) {
+            if (response == null || response.getResultCount() == 0 || response.getResults().isEmpty()) {
                 return null;
             }
-            String preview = response.getData().get(0).getPreview();
-            return (preview != null && !preview.isBlank()) ? preview : null;
+            return response.getResults().get(0);
         } catch (Exception e) {
-            log.warn("[Collect] Deezer 조회 실패 - title={}, error={}", title, e.getMessage());
+            log.warn("[Collect] iTunes 조회 실패 - query={}, error={}", searchQuery, e.getMessage());
             return null;
         }
     }
 
-    private String toYearRange(int decade) {
+    private String toDecadeLabel(String decade) {
         return switch (decade) {
-            case 1990 -> "1990-1999";
-            case 2000 -> "2000-2009";
-            case 2010 -> "2010-2019";
-            case 2020 -> "2020-2029";
-            default -> throw new IllegalArgumentException("지원하지 않는 연대입니다: " + decade);
+            case "1990_EARLY" -> "1990년대 초반(1990~1994년)";
+            case "1990_LATE"  -> "1990년대 후반(1995~1999년)";
+            case "2000"       -> "2000년대(2000~2009년)";
+            case "2010"       -> "2010년대(2010~2019년)";
+            case "2020"       -> "2020년대(2020~현재)";
+            default -> throw new IllegalArgumentException("지원하지 않는 연대: " + decade);
         };
     }
+
+    record SongRecommendation(String title, String artist, String searchQuery) {}
 }

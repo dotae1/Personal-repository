@@ -5,18 +5,24 @@
 <mapper namespace="com.example.playlist.game.repository.QuizTrackMapper">
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO quiz_track (title, artist, album_image_url, preview_url, decade, spotify_track_id)
-        VALUES (#{title}, #{artist}, #{albumImageUrl}, #{previewUrl}, #{decade}, #{spotifyTrackId})
+        INSERT INTO quiz_track (title, artist, album_image_url, preview_url, decade, itunes_track_id)
+        VALUES (#{title}, #{artist}, #{albumImageUrl}, #{previewUrl}, #{decade}, #{itunesTrackId})
     </insert>
 
-    <select id="existsBySpotifyTrackId" resultType="boolean">
+    <select id="existsByItunesTrackId" resultType="boolean">
         SELECT COUNT(*) > 0
         FROM quiz_track
-        WHERE spotify_track_id = #{spotifyTrackId}
+        WHERE itunes_track_id = #{itunesTrackId}
+    </select>
+
+    <select id="findTitlesByDecade" resultType="string">
+        SELECT title
+        FROM quiz_track
+        WHERE decade = #{decade}
     </select>
 
     <select id="findRandomByDecade" resultType="com.example.playlist.game.entity.QuizTrack">
-        SELECT id, title, artist, album_image_url, preview_url, decade, spotify_track_id, created_at
+        SELECT id, title, artist, album_image_url, preview_url, decade, itunes_track_id, created_at
         FROM quiz_track
         WHERE decade = #{decade}
         ORDER BY RANDOM()
