@@ -54,8 +54,14 @@ public class GameService {
     private List<SpotifySearchResponse.Item> searchWithPreview(String yearRange, String accessToken, int offset) {
         SpotifySearchResponse response = spotifyWebClient
                 .get()
-                .uri("/search?q=year:{year}&type=track&limit={limit}&offset={offset}&market=KR",
-                        yearRange, SEARCH_LIMIT, offset)
+                .uri(uriBuilder -> uriBuilder
+                        .path("/search")
+                        .queryParam("q", "year:" + yearRange)
+                        .queryParam("type", "track")
+                        .queryParam("limit", SEARCH_LIMIT)
+                        .queryParam("offset", offset)
+                        .queryParam("market", "KR")
+                        .build())
                 .header("Authorization", "Bearer " + accessToken)
                 .retrieve()
                 .bodyToMono(SpotifySearchResponse.class)
