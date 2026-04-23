@@ -7,7 +7,8 @@ import org.springframework.http.HttpStatus;
 @Getter
 public enum GeminiErrorCode implements ErrorCode {
 
-    GEMINI_IS_BUSY(HttpStatus.BAD_REQUEST, "AI 요청이 많아 잠시 후에 시도해주세요.");
+    GEMINI_IS_BUSY(HttpStatus.BAD_REQUEST, "AI 요청이 많아 잠시 후에 시도해주세요."),
+    GEMINI_RATE_LIMIT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "요청이 너무 많습니다. 1분 후 다시 시도해주세요.");
 
     private final HttpStatus status;
     private final String message;

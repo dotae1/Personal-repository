@@ -42,8 +42,8 @@ public class PlaylistService {
     private final RedisTemplate<String, String> redisTemplate;
 
     /** AI 추천 플레이리스트 생성 (DB 미저장, 결과만 반환) */
-    public PlaylistResponse createPlayList(GeminiRequest request) throws com.fasterxml.jackson.core.JsonProcessingException {
-        GeminiResponse geminiResponse = geminiService.CreatePlaylist(request);
+    public PlaylistResponse createPlayList(GeminiRequest request, String clientIp) throws com.fasterxml.jackson.core.JsonProcessingException {
+        GeminiResponse geminiResponse = geminiService.CreatePlaylist(request, clientIp);
 
         List<SpotifyTrack> tracks = Flux.fromIterable(geminiResponse.getSongs())
                 .flatMap(song -> spotifyService.searchTrack(song.getArtist(), song.getTitle()))

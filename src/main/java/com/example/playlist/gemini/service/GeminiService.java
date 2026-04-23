@@ -4,6 +4,7 @@ import com.example.playlist.gemini.dto.GeminiRequest;
 import com.example.playlist.gemini.dto.GeminiResponse;
 import com.example.playlist.gemini.exception.GeminiErrorCode;
 import com.example.playlist.gemini.exception.GeminiException;
+import com.example.playlist.global.util.RedisUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.genai.Client;
@@ -19,22 +20,38 @@ public class GeminiService {
     private final Client geminiClient;
     private final GenerateContentConfig geminiConfig;
     private final ObjectMapper objectMapper;
+    private final RedisUtil redisUtil;
 
-    public GeminiResponse CreatePlaylist(GeminiRequest request) throws JsonProcessingException {
+    private static final int RATE_LIMIT_PER_MINUTE = 5;  // IP당 분당 최대 요청 수
+
+    public GeminiResponse CreatePlaylist(GeminiRequest request, String clientIp) throws JsonProcessingException {
+        checkRateLimit(clientIp);
+
         try {
             GenerateContentResponse response =
                     geminiClient.models.generateContent(
-                            "gemini-3-flash-preview",
+                            "gemini-2.0-flash",
                             request.toPrompt(),
                             geminiConfig
                     );
 
             String jsonText = response.text();
-            GeminiResponse geminiResponse = objectMapper.readValue(jsonText, GeminiResponse.class);
+            return objectMapper.readValue(jsonText, GeminiResponse.class);
 
-            return geminiResponse;
         } catch (com.google.genai.errors.ServerException e) {
             throw new GeminiException(GeminiErrorCode.GEMINI_IS_BUSY);
         }
+    }
+
+    private void checkRateLimit(String clientIp) {
+        String key = "gemini:ratelimit:" + clientIp;
+        String countStr = redisUtil.getData(key);
+        int count = countStr == null ? 0 : Integer.parseInt(countStr);
+
+        if (count >= RATE_LIMIT_PER_MINUTE) {
+            throw new GeminiException(GeminiErrorCode.GEMINI_RATE_LIMIT_EXCEEDED);
+        }
+
+        redisUtil.setDataExpire(key, String.valueOf(count + 1), 60); // 60초 TTL
     }
 }

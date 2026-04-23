@@ -5,6 +5,7 @@ import com.example.playlist.gemini.service.GeminiService;
 import com.example.playlist.gemini.dto.GeminiRequest;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -24,9 +25,18 @@ public class GeminiController {
     )
     @PostMapping("/playlist")
     public GeminiResponse createPlaylist(
-            @RequestBody GeminiRequest reqeust
-            ) throws JsonProcessingException {
-        GeminiResponse response = geminiService.CreatePlaylist(reqeust);
-        return response;
+            @RequestBody GeminiRequest request,
+            HttpServletRequest httpRequest
+    ) throws JsonProcessingException {
+        String clientIp = getClientIp(httpRequest);
+        return geminiService.CreatePlaylist(request, clientIp);
+    }
+
+    private String getClientIp(HttpServletRequest request) {
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip != null && !ip.isBlank()) {
+            return ip.split(",")[0].trim(); // 프록시 체인의 첫 번째 IP
+        }
+        return request.getRemoteAddr();
     }
 }

@@ -16,7 +16,9 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Service
@@ -33,8 +35,17 @@ public class GameCollectService {
     private static final int BATCH_SIZE = 15;
     private static final int MAX_GEMINI_CALLS = 10;
 
+    // 진행 상태 메모리 저장 (decade → status)
+    private final Map<String, CollectStatus> statusMap = new ConcurrentHashMap<>();
+
     public void collectTracksAsync(String decade) {
+        statusMap.put(decade, new CollectStatus("RUNNING", 0, quizTrackMapper.countByDecade(decade)));
         CompletableFuture.runAsync(() -> collectTracks(decade));
+    }
+
+    public CollectStatus getStatus(String decade) {
+        return statusMap.getOrDefault(decade,
+                new CollectStatus("IDLE", 0, quizTrackMapper.countByDecade(decade)));
     }
 
     public int countByDecade(String decade) {
@@ -77,6 +88,8 @@ public class GameCollectService {
                     quizTrackMapper.insert(QuizTrack.builder()
                             .title(song.title())
                             .artist(song.artist())
+                            .titleAlias(track.getTrackName())    // iTunes 영어 제목
+                            .artistAlias(track.getArtistName())  // iTunes 영어 아티스트명
                             .albumImageUrl(track.getArtworkUrl())
                             .previewUrl(track.getPreviewUrl())
                             .decade(decade)
@@ -84,6 +97,8 @@ public class GameCollectService {
                             .build());
 
                     newlyCollected++;
+                    int total = quizTrackMapper.countByDecade(decade);
+                    statusMap.put(decade, new CollectStatus("RUNNING", newlyCollected, total));
                     log.info("[Collect] 저장 [{}/{}] title={}, artist={}", newlyCollected, TARGET, song.title(), song.artist());
                 }
 
@@ -99,6 +114,7 @@ public class GameCollectService {
         }
 
         int total = quizTrackMapper.countByDecade(decade);
+        statusMap.put(decade, new CollectStatus("COMPLETED", newlyCollected, total));
         log.info("[Collect] 완료 - decade={}, 신규={}곡, DB총={}곡", decade, newlyCollected, total);
         return new CollectResponse(decade, newlyCollected, total);
     }
@@ -122,7 +138,7 @@ public class GameCollectService {
                 """, decadeLabel, BATCH_SIZE, exclusionList);
 
         GenerateContentResponse response = geminiClient.models.generateContent(
-                "gemini-3-flash-preview", prompt, geminiConfig);
+                "gemini-2.0-flash", prompt, geminiConfig);
 
         String json = response.text().trim()
                 .replaceAll("```json", "").replaceAll("```", "").trim();
@@ -181,4 +197,10 @@ public class GameCollectService {
     }
 
     record SongRecommendation(String title, String artist, String searchQuery) {}
+
+    public record CollectStatus(
+            String status,        // IDLE / RUNNING / COMPLETED
+            int newlyCollected,   // 이번 수집에서 추가된 곡 수
+            int totalInDb         // DB 총 곡 수
+    ) {}
 }
