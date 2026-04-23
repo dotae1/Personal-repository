@@ -1,6 +1,7 @@
 package com.example.playlist.global.config;
 
 import com.example.playlist.global.filter.JwtFilter;
+import com.example.playlist.global.filter.VisitorFilter;
 import com.example.playlist.global.oauth2.HttpCookieOAuth2AuthorizationRequestRepository;
 import com.example.playlist.global.util.JwtUtil;
 import com.example.playlist.member.oauth2.CustomOAuth2UserService;
@@ -33,6 +34,7 @@ public class SecurityConfig {
 
     private final JwtUtil jwtUtil;
     private final JwtFilter jwtFilter;
+    private final VisitorFilter visitorFilter;
     private final CustomOAuth2UserService customOAuth2UserService;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
     private final OAuth2FailureHandler oAuth2FailureHandler;
@@ -92,7 +94,8 @@ public class SecurityConfig {
                         .failureHandler(oAuth2FailureHandler)
                 );
         http
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(visitorFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

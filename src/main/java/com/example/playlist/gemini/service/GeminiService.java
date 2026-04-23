@@ -11,7 +11,11 @@ import com.google.genai.Client;
 import com.google.genai.types.GenerateContentConfig;
 import com.google.genai.types.GenerateContentResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+
+import java.time.Duration;
+import java.time.LocalDate;
 
 @Service
 @RequiredArgsConstructor
@@ -21,8 +25,9 @@ public class GeminiService {
     private final GenerateContentConfig geminiConfig;
     private final ObjectMapper objectMapper;
     private final RedisUtil redisUtil;
+    private final StringRedisTemplate redisTemplate;
 
-    private static final int RATE_LIMIT_PER_MINUTE = 5;  // IP당 분당 최대 요청 수
+    private static final int RATE_LIMIT_PER_MINUTE = 5;
 
     public GeminiResponse CreatePlaylist(GeminiRequest request, String clientIp) throws JsonProcessingException {
         checkRateLimit(clientIp);
@@ -35,12 +40,20 @@ public class GeminiService {
                             geminiConfig
                     );
 
+            incrementAiCallCount();
+
             String jsonText = response.text();
             return objectMapper.readValue(jsonText, GeminiResponse.class);
 
         } catch (com.google.genai.errors.ServerException e) {
             throw new GeminiException(GeminiErrorCode.GEMINI_IS_BUSY);
         }
+    }
+
+    private void incrementAiCallCount() {
+        String key = "ai:calls:" + LocalDate.now();
+        redisTemplate.opsForValue().increment(key);
+        redisTemplate.expire(key, Duration.ofDays(30));
     }
 
     private void checkRateLimit(String clientIp) {
