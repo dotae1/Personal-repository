@@ -10,7 +10,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
@@ -81,7 +80,6 @@ public class JwtUtil {
         tempCookie.setPath("/");
         tempCookie.setMaxAge(10 * 60);
         response.addCookie(tempCookie);
-        log.info("TempToken 쿠키 설정 완료");
     }
 
     public Optional<Long> extractMemberIdFromTempToken(HttpServletRequest request) {
@@ -114,8 +112,6 @@ public class JwtUtil {
         refreshCookie.setPath("/members/reissue");
         refreshCookie.setMaxAge(refreshTokenExpiration.intValue());
         response.addCookie(refreshCookie);
-
-        log.info("Access, RefreshToken 쿠키 설정 완료");
     }
 
     public Optional<String> extractAccessToken(HttpServletRequest request) {
@@ -140,7 +136,6 @@ public class JwtUtil {
                     parseClaims(token).get("loginId", String.class)
             );
         } catch (Exception e) {
-            log.info("loginId 추출 실패: {}", e.getMessage());
             return Optional.empty();
         }
     }
@@ -158,13 +153,11 @@ public class JwtUtil {
     public boolean isTokenValid(String token) {
         try {
             if (redisTemplate.opsForValue().get("BlackList:" + token) != null) {
-                log.info("로그아웃 된 토큰입니다.");
                 return false;
             }
             parseClaims(token);
             return true;
         } catch (JwtException e) {
-            log.info("유효하지 않은 Token: {}", e.getMessage());
             return false;
         }
     }
@@ -180,20 +173,16 @@ public class JwtUtil {
         }
     }
 
-    @Transactional
     public void saveRefreshToken(String loginId, String refreshToken) {
         redisTemplate.opsForValue()
                 .set("RT:" + loginId, refreshToken, Duration.ofSeconds(refreshTokenExpiration));
-        log.info("RefreshToken 저장 - loginId={}", loginId);
     }
 
-    @Transactional
     public void updateRefreshToken(String loginId, String refreshToken) {
         redisTemplate.opsForValue()
                 .set("RT:" + loginId, refreshToken, Duration.ofSeconds(refreshTokenExpiration));
     }
 
-    @Transactional
     public void logout(HttpServletRequest request, HttpServletResponse response, String loginId) {
         extractAccessToken(request).ifPresent(accessToken -> {
             try {
