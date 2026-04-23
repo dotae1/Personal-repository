@@ -11,6 +11,7 @@ import com.example.playlist.playlist.service.PlaylistService;
 import com.example.playlist.spotify.dto.SpotifyUserPlaylistsResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -29,9 +30,19 @@ public class PlaylistController {
     @Operation(summary = "AI 플레이리스트 추천", description = "Gemini가 추천한 곡들을 Spotify에서 검색해서 반환 (DB 미저장)")
     @PostMapping
     public PlaylistResponse createPlaylist(
-            @RequestBody GeminiRequest geminiRequest
+            @RequestBody GeminiRequest geminiRequest,
+            HttpServletRequest httpRequest
     ) throws JsonProcessingException {
-        return playlistService.createPlayList(geminiRequest);
+        String clientIp = getClientIp(httpRequest);
+        return playlistService.createPlayList(geminiRequest, clientIp);
+    }
+
+    private String getClientIp(HttpServletRequest request) {
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip != null && !ip.isBlank()) {
+            return ip.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 
     @Operation(summary = "플레이리스트 상세 조회", description = "플레이리스트 정보 + 곡 목록 반환 (본인 것만)")
