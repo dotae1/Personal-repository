@@ -1,5 +1,7 @@
 package com.example.playlist.game.controller;
 
+import com.example.playlist.game.dto.QuizAnswerRequest;
+import com.example.playlist.game.dto.QuizAnswerResponse;
 import com.example.playlist.game.dto.QuizTrackResponse;
 import com.example.playlist.game.service.GameCollectService;
 import com.example.playlist.game.service.GameService;
@@ -26,6 +28,17 @@ public class GameController {
             @RequestParam String decade
     ) {
         return ResponseEntity.ok(gameService.getQuizTrack(decade));
+    }
+
+    @Operation(
+            summary = "퀴즈 정답 제출",
+            description = "quizId와 사용자 답변을 제출하면 정답 여부와 실제 제목/아티스트를 반환. quizId 발급 후 5분 내 제출 필요."
+    )
+    @PostMapping("/game/quiz/answer")
+    public ResponseEntity<QuizAnswerResponse> submitAnswer(
+            @RequestBody QuizAnswerRequest request
+    ) {
+        return ResponseEntity.ok(gameService.checkAnswer(request));
     }
 
     @Operation(
