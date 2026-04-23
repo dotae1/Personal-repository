@@ -30,7 +30,7 @@ public class GeminiService {
         try {
             GenerateContentResponse response =
                     geminiClient.models.generateContent(
-                            "gemini-1.5-flash",
+                            "gemini-2.5-flash-lite",
                             request.toPrompt(),
                             geminiConfig
                     );
