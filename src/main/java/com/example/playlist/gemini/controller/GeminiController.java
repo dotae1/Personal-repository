@@ -6,6 +6,7 @@ import com.example.playlist.gemini.dto.GeminiRequest;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -25,7 +26,7 @@ public class GeminiController {
     )
     @PostMapping("/playlist")
     public GeminiResponse createPlaylist(
-            @RequestBody GeminiRequest request,
+            @Valid @RequestBody GeminiRequest request,
             HttpServletRequest httpRequest
     ) throws JsonProcessingException {
         String clientIp = getClientIp(httpRequest);

@@ -138,7 +138,7 @@ public class GameCollectService {
                 """, decadeLabel, BATCH_SIZE, exclusionList);
 
         GenerateContentResponse response = geminiClient.models.generateContent(
-                "gemini-2.0-flash", prompt, geminiConfig);
+                "gemini-3-flash-preview", prompt, geminiConfig);
 
         String json = response.text().trim()
                 .replaceAll("```json", "").replaceAll("```", "").trim();

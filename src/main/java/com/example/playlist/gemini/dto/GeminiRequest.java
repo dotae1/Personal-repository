@@ -1,5 +1,7 @@
 package com.example.playlist.gemini.dto;
 
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -8,6 +10,9 @@ import lombok.Setter;
 public class GeminiRequest {
     private String prompt;
     private String category;
+
+    @Min(1)
+    @Max(30)
     private int songCount = 10;
 
     public String toPrompt() {
