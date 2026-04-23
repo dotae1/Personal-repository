@@ -8,7 +8,6 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -23,7 +22,6 @@ import java.util.List;
 import java.util.Optional;
 
 @Component
-@Slf4j
 @RequiredArgsConstructor
 public class JwtFilter extends OncePerRequestFilter {
 
@@ -62,7 +60,6 @@ public class JwtFilter extends OncePerRequestFilter {
                 jwtUtil.sendAccessAndRefreshToken(response, newAccessToken, newRefreshToken);
                 saveAuthentication(loginIdOpt.get(), role);
 
-                log.info("AccessToken 재발급");
                 filterChain.doFilter(request, response);
                 return;
             }

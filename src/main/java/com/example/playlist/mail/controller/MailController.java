@@ -9,6 +9,7 @@ import com.example.playlist.mail.exception.MailSuccessCode;
 import com.example.playlist.mail.service.MailService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.mail.MessagingException;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -30,8 +31,11 @@ public class MailController {
             description = "인증 메일을 전송하는 컨트롤러"
     )
     @PostMapping("/send")
-    public ResponseEntity<SuccessResponse> sendMail(@RequestBody @Valid MailRequest request) throws MessagingException {
-        mailService.sendCertificationMail(request);
+    public ResponseEntity<SuccessResponse> sendMail(@RequestBody @Valid MailRequest request,
+                                                     HttpServletRequest httpRequest) throws MessagingException {
+        String clientIp = httpRequest.getHeader("X-Real-IP");
+        if (clientIp == null || clientIp.isBlank()) clientIp = httpRequest.getRemoteAddr();
+        mailService.sendCertificationMail(request, clientIp);
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(SuccessResponse.of(MailSuccessCode.MAIL_SUCCESS_SEND));

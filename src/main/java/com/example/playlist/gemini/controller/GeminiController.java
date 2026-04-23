@@ -34,10 +34,8 @@ public class GeminiController {
     }
 
     private String getClientIp(HttpServletRequest request) {
-        String ip = request.getHeader("X-Forwarded-For");
-        if (ip != null && !ip.isBlank()) {
-            return ip.split(",")[0].trim(); // 프록시 체인의 첫 번째 IP
-        }
+        String ip = request.getHeader("X-Real-IP");
+        if (ip != null && !ip.isBlank()) return ip;
         return request.getRemoteAddr();
     }
 }

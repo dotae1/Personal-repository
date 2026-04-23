@@ -12,9 +12,11 @@ import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.mail.MailSendException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -30,6 +32,8 @@ public class MailService {
 
     @Value("${spring.mail.username}")
     String sendEmail;
+
+    private static final int MAIL_RATE_LIMIT = 5; // IP당 분당 최대 5회
 
 
     public MimeMessage createCodeEmail(String email, String code) throws MessagingException {
@@ -54,7 +58,15 @@ public class MailService {
         return UUID.randomUUID().toString().substring(0, 6);
     }
 
-    public String sendCertificationMail(MailRequest mailRequest) throws MessagingException {
+    public String sendCertificationMail(MailRequest mailRequest, String clientIp) throws MessagingException {
+        String key = "mail:ratelimit:" + clientIp;
+        String countStr = redisUtil.getData(key);
+        int count = countStr == null ? 0 : Integer.parseInt(countStr);
+        if (count >= MAIL_RATE_LIMIT) {
+            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "요청이 너무 많습니다. 1분 후 다시 시도해주세요.");
+        }
+        redisUtil.setDataExpire(key, String.valueOf(count + 1), 60);
+
         memberMapper.findByEmail(mailRequest.getEmail()).ifPresent(member -> {
             throw new MailException(MailErrorCode.EMAIL_ALREADY_EXIST);
         });

@@ -39,6 +39,10 @@ public class GameCollectService {
     private final Map<String, CollectStatus> statusMap = new ConcurrentHashMap<>();
 
     public void collectTracksAsync(String decade) {
+        CollectStatus current = statusMap.get(decade);
+        if (current != null && "RUNNING".equals(current.status())) {
+            throw new IllegalStateException("이미 수집이 진행 중입니다. 완료 후 다시 시도해주세요.");
+        }
         statusMap.put(decade, new CollectStatus("RUNNING", 0, quizTrackMapper.countByDecade(decade)));
         CompletableFuture.runAsync(() -> collectTracks(decade));
     }
@@ -56,9 +60,10 @@ public class GameCollectService {
         String decadeLabel = toDecadeLabel(decade);
         int newlyCollected = 0;
 
-        // DB에 이미 있는 제목을 Gemini 제외 목록으로 활용
-        List<String> seenTitles = new ArrayList<>(quizTrackMapper.findTitlesByDecade(decade));
-        log.info("[Collect] 시작 - decade={}, 기존 DB={}곡", decade, seenTitles.size());
+        // 이번 수집 중 Gemini가 추천한 제목만 제외 목록으로 사용 (DB 전체 제목은 제외하지 않음)
+        // 실제 중복 방지는 existsByItunesTrackId 에서 처리
+        List<String> seenTitles = new ArrayList<>();
+        log.info("[Collect] 시작 - decade={}, 기존 DB={}곡", decade, quizTrackMapper.countByDecade(decade));
 
         for (int attempt = 0; attempt < MAX_GEMINI_CALLS && newlyCollected < TARGET; attempt++) {
             try {

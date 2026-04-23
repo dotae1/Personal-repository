@@ -65,7 +65,6 @@ public class PlaylistService {
         String userToken = getSpotifyUserToken(loginId);
 
         String spotifyPlaylistId = spotifyService.createPlaylist(req.getPlaylistName(), userToken);
-        log.info("[Playlist] 새 플레이리스트 생성됨 - spotifyPlaylistId={}", spotifyPlaylistId);
 
         List<String> trackUris = req.getTracks().stream()
                 .map(SpotifyTrackSaveRequest::getSpotifyTrackUri)
