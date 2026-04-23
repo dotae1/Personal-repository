@@ -11,6 +11,7 @@ import com.google.genai.types.GenerateContentConfig;
 import com.google.genai.types.GenerateContentResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -26,6 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class GameCollectService {
 
     private final Client geminiClient;
+    @Qualifier("gameCollectConfig")
     private final GenerateContentConfig geminiConfig;
     private final WebClient itunesWebClient;
     private final QuizTrackMapper quizTrackMapper;
@@ -143,7 +145,7 @@ public class GameCollectService {
                 """, decadeLabel, BATCH_SIZE, exclusionList);
 
         GenerateContentResponse response = geminiClient.models.generateContent(
-                "gemini-3-flash-preview", prompt, geminiConfig);
+                "gemini-1.5-flash", prompt, geminiConfig);
 
         String json = response.text().trim()
                 .replaceAll("```json", "").replaceAll("```", "").trim();

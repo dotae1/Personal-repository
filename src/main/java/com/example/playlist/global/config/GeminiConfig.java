@@ -8,6 +8,7 @@ import com.google.genai.types.Schema;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 
 import java.util.Map;
 
@@ -24,6 +25,8 @@ public class GeminiConfig {
                 .build();
     }
 
+    /** 플레이리스트 추천용 설정 (playlistTitle + songs[title, artist]) */
+    @Primary
     @Bean
     public GenerateContentConfig generateContentConfig() {
         return GenerateContentConfig.builder()
@@ -33,9 +36,9 @@ public class GeminiConfig {
                             정확한 분위기의 곡만 추천해야 한다.
                             절대 JSON 형식을 깨지 마라.
                 """)))
-                .temperature(0.5f) // 높을수록 창의성 높은 대답
-                .topP(0.8f) //상위 80%만 사용
-                .responseMimeType("application/json") //출력 형태
+                .temperature(0.5f)
+                .topP(0.8f)
+                .responseMimeType("application/json")
                 .responseSchema(Schema.builder()
                         .type("object")
                         .properties(Map.of(
@@ -55,6 +58,28 @@ public class GeminiConfig {
                 .build();
     }
 
-
-
+    /** 곡 수집용 설정 (songs[title, artist, searchQuery]) */
+    @Bean
+    public GenerateContentConfig gameCollectConfig() {
+        return GenerateContentConfig.builder()
+                .temperature(0.7f)
+                .responseMimeType("application/json")
+                .responseSchema(Schema.builder()
+                        .type("object")
+                        .properties(Map.of(
+                                "songs", Schema.builder()
+                                        .type("array")
+                                        .items(Schema.builder()
+                                                .type("object")
+                                                .properties(Map.of(
+                                                        "title", Schema.builder().type("string").build(),
+                                                        "artist", Schema.builder().type("string").build(),
+                                                        "searchQuery", Schema.builder().type("string").build()
+                                                ))
+                                                .build())
+                                        .build()
+                        )).build()
+                )
+                .build();
+    }
 }
