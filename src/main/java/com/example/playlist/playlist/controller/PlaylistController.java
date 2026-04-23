@@ -30,7 +30,7 @@ public class PlaylistController {
     @Operation(summary = "AI 플레이리스트 추천", description = "Gemini가 추천한 곡들을 Spotify에서 검색해서 반환 (DB 미저장)")
     @PostMapping
     public PlaylistResponse createPlaylist(
-            @RequestBody GeminiRequest geminiRequest,
+            @Valid @RequestBody GeminiRequest geminiRequest,
             HttpServletRequest httpRequest
     ) throws JsonProcessingException {
         String clientIp = getClientIp(httpRequest);
