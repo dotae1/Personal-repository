@@ -36,9 +36,16 @@ public class GameController {
     public ResponseEntity<Map<String, String>> collectTracks(
             @RequestParam String decade
     ) {
-        gameCollectService.collectTracksAsync(decade);
+        try {
+            gameCollectService.collectTracksAsync(decade);
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(409).body(Map.of(
+                    "message", e.getMessage(),
+                    "decade", decade
+            ));
+        }
         return ResponseEntity.accepted().body(Map.of(
-                "message", "수집이 백그라운드에서 시작되었습니다. 서버 로그를 확인하세요.",
+                "message", "수집이 백그라운드에서 시작되었습니다.",
                 "decade", decade
         ));
     }
