@@ -54,20 +54,24 @@ public class GameService {
             throw new IllegalStateException("퀴즈 데이터를 읽을 수 없습니다.");
         }
 
-        String userAnswer = normalize(request.answer());
-        boolean correct = userAnswer.equals(normalize(track.getTitle()))
-                || (track.getTitleAlias() != null && userAnswer.equals(normalize(track.getTitleAlias())));
+        String titleAnswer = normalize(request.titleAnswer());
+        boolean titleCorrect = titleAnswer.equals(normalize(track.getTitle()))
+                || (track.getTitleAlias() != null && titleAnswer.equals(normalize(track.getTitleAlias())));
 
-        return new QuizAnswerResponse(correct, track.getTitle(), track.getArtist(), track.getAlbumImageUrl());
+        String artistAnswer = normalize(request.artistAnswer());
+        boolean artistCorrect = artistAnswer.equals(normalize(track.getArtist()))
+                || (track.getArtistAlias() != null && artistAnswer.equals(normalize(track.getArtistAlias())));
+
+        return new QuizAnswerResponse(titleCorrect && artistCorrect, titleCorrect, artistCorrect,
+                track.getTitle(), track.getArtist(), track.getAlbumImageUrl());
     }
 
     private String normalize(String value) {
         if (value == null) return "";
         return value
-                .replaceAll("\\(.*?\\)", "")
-                .replaceAll("\\[.*?\\]", "")
-                .replaceAll("\\s+", "")
-                .toLowerCase()
-                .trim();
+                .replaceAll("\\(.*?\\)", "")   // 괄호 내용 제거
+                .replaceAll("\\[.*?\\]", "")   // 대괄호 내용 제거
+                .replaceAll("[^\\p{L}\\p{N}]", "") // 특수문자·공백·쉼표 전부 제거
+                .toLowerCase();
     }
 }
