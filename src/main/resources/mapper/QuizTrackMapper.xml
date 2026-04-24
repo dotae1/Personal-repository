@@ -15,13 +15,7 @@
         WHERE itunes_track_id = #{itunesTrackId}
     </select>
 
-    <select id="findTitlesByDecade" resultType="string">
-        SELECT title
-        FROM quiz_track
-        WHERE decade = #{decade}
-    </select>
-
-    <select id="findRandomByDecade" resultType="com.example.playlist.game.entity.QuizTrack">
+<select id="findRandomByDecade" resultType="com.example.playlist.game.entity.QuizTrack">
         SELECT id, title, artist, title_alias, artist_alias, album_image_url, preview_url, decade, itunes_track_id, created_at
         FROM quiz_track
         WHERE decade = #{decade}
