@@ -22,13 +22,6 @@ public class WebClientConfig {
     }
 
     @Bean
-    public WebClient deezerWebClient() {
-        return WebClient.builder()
-                .baseUrl("https://api.deezer.com")
-                .build();
-    }
-
-    @Bean
     public WebClient itunesWebClient() {
         return WebClient.builder()
                 .baseUrl("https://itunes.apple.com")
