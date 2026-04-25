@@ -2,12 +2,14 @@ package com.example.playlist.gemini.dto;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
 public class GeminiRequest {
+    @Size(max = 100, message = "프롬프트는 100자 이하로 입력해주세요.")
     private String prompt;
     private String category;
 
