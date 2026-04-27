@@ -8,6 +8,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -18,6 +19,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.time.Duration;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -27,6 +30,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final MemberMapper memberMapper;
+    private final StringRedisTemplate redisTemplate;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
@@ -39,6 +43,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
             if (loginIdOpt.isPresent()) {
                 saveAuthentication(loginIdOpt.get(), role);
+                recordMemberVisit(loginIdOpt.get());
             }
             filterChain.doFilter(request, response);
             return;
@@ -65,6 +70,12 @@ public class JwtFilter extends OncePerRequestFilter {
             }
         }
         filterChain.doFilter(request, response);
+    }
+
+    private void recordMemberVisit(String loginId) {
+        String key = "visitor:member:" + LocalDate.now();
+        redisTemplate.opsForSet().add(key, loginId);
+        redisTemplate.expire(key, Duration.ofDays(30));
     }
 
     public void saveAuthentication(String loginId, String role) {
