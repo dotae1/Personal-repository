@@ -212,7 +212,7 @@ public class GameCollectService {
             // iTunes API가 text/javascript 콘텐츠 타입으로 응답하므로 String으로 받아 수동 파싱
             String body = itunesWebClient
                     .get()
-                    .uri("/search?term={term}&country=KR&media=music&entity=song&limit=1", searchQuery)
+                    .uri("/search?term={term}&country=US&media=music&entity=song&limit=1", searchQuery)
                     .retrieve()
                     .bodyToMono(String.class)
                     .block();
