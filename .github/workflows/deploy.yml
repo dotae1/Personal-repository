@@ -54,6 +54,23 @@ jobs:
       - name: ECR에 Docker 이미지 Push하기
         run: docker push ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:latest
 
+      - name: GitHub Actions IP의 SSH 접속 허용
+        id: allow-ssh
+        run: |
+          RUNNER_IP=$(curl -4 -fsS --retry 3 https://checkip.amazonaws.com | tr -d '\r\n')
+          python3 -c 'import ipaddress, sys; ipaddress.IPv4Address(sys.argv[1])' "$RUNNER_IP"
+
+          RULE_ID=$(aws ec2 authorize-security-group-ingress \
+            --region ap-northeast-2 \
+            --group-id sg-0dd8ad9c9b7086197 \
+            --protocol tcp \
+            --port 22 \
+            --cidr "${RUNNER_IP}/32" \
+            --query 'SecurityGroupRules[0].SecurityGroupRuleId' \
+            --output text)
+
+          echo "rule_id=$RULE_ID" >> "$GITHUB_OUTPUT"
+
       # 5. EC2로 SSH 접속하여 배포
       - name: Deploy on EC2
         uses: appleboy/ssh-action@v1.0.0
@@ -62,9 +79,12 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_KEY }}
           script: |
+            set -e
+            set -o pipefail
+
             aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
-            
-            cd /home/ubuntu/compose
+
+            cd /home/ec2-user/compose
             
             echo "${{ secrets.ENV }}" | base64 -d > .env
             chmod 600 .env
@@ -82,3 +102,13 @@ jobs:
             docker compose logs --tail 30
             
             rm .env
+
+      - name: GitHub Actions SSH 임시 규칙 삭제
+        if: ${{ always() && steps.allow-ssh.outputs.rule_id != '' }}
+        env:
+          SSH_RULE_ID: ${{ steps.allow-ssh.outputs.rule_id }}
+        run: |
+          aws ec2 revoke-security-group-ingress \
+            --region ap-northeast-2 \
+            --group-id sg-0dd8ad9c9b7086197 \
+            --security-group-rule-ids "$SSH_RULE_ID"
