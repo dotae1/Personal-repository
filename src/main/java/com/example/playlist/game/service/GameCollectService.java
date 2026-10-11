@@ -14,12 +14,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
 @Service
@@ -37,16 +39,42 @@ public class GameCollectService {
     private static final int BATCH_SIZE = 15;
     private static final int MAX_GEMINI_CALLS = 10;
 
+    private static final long ITUNES_REQUEST_DELAY_MS = 2000L;
+
+    // 동시에 하나의 연대만 수집
+    private final AtomicBoolean collecting = new AtomicBoolean(false);
+
     // 진행 상태 메모리 저장 (decade → status)
     private final Map<String, CollectStatus> statusMap = new ConcurrentHashMap<>();
 
     public void collectTracksAsync(String decade) {
-        CollectStatus current = statusMap.get(decade);
-        if (current != null && "RUNNING".equals(current.status())) {
-            throw new IllegalStateException("이미 수집이 진행 중입니다. 완료 후 다시 시도해주세요.");
+        if (!collecting.compareAndSet(false, true)) {
+            throw new IllegalStateException(
+                    "다른 음악 수집이 진행 중입니다. 완료 후 다시 시도해주세요.");
         }
-        statusMap.put(decade, new CollectStatus("RUNNING", 0, quizTrackMapper.countByDecade(decade)));
-        CompletableFuture.runAsync(() -> collectTracks(decade));
+
+        try {
+            // 비동기 실행 전 DB 조회
+            int total = quizTrackMapper.countByDecade(decade);
+
+            statusMap.put(decade, new CollectStatus("RUNNING", 0, total));
+
+            CompletableFuture.runAsync(() -> collectTracks(decade))
+                    .whenComplete((result, error) -> {
+                        if (error != null) {
+                            log.error("[Collect] 비동기 수집 예외 - decade={}", decade, error);
+
+                            statusMap.put(decade, new CollectStatus(
+                                    "FAILED", 0, quizTrackMapper.countByDecade(decade)));
+                        }
+
+                        collecting.set(false);
+                    });
+
+        } catch (Exception e) {
+            collecting.set(false);
+            throw e;
+        }
     }
 
     public CollectStatus getStatus(String decade) {
@@ -75,6 +103,8 @@ public class GameCollectService {
                 for (SongRecommendation song : songs) {
                     if (newlyCollected >= TARGET) break;
                     seenTitles.add(song.title());
+
+                    Thread.sleep(ITUNES_REQUEST_DELAY_MS);
 
                     ItunesSearchResponse.ItunesTrack track = findOnItunes(song.searchQuery());
                     if (track == null) {
@@ -109,14 +139,22 @@ public class GameCollectService {
                     log.info("[Collect] 저장 [{}/{}] title={}, artist={}", newlyCollected, TARGET, song.title(), song.artist());
                 }
 
-                // iTunes rate limit 방지
-                Thread.sleep(300);
+
+            } catch (WebClientResponseException.TooManyRequests e) {
+                log.error("[Collect] iTunes 429 발생 - 수집 중단, decade={}", decade);
+
+                int total = quizTrackMapper.countByDecade(decade);
+                statusMap.put(decade, new CollectStatus("FAILED", newlyCollected, total));
+
+                return new CollectResponse(decade, newlyCollected, total);
 
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 break;
+
             } catch (Exception e) {
-                log.warn("[Collect] Gemini 추천 실패 - attempt={}, error={}", attempt + 1, e.getMessage());
+                log.warn("[Collect] 수집 중 오류 - attempt={}, error={}",
+                        attempt + 1, e.getMessage());
             }
         }
 
@@ -186,8 +224,14 @@ public class GameCollectService {
                 return null;
             }
             return response.getResults().get(0);
+        } catch (WebClientResponseException.TooManyRequests e) {
+            log.error("[Collect] iTunes 호출 제한 발생 - query={}, status=429",
+                    searchQuery);
+            throw e;
+
         } catch (Exception e) {
-            log.warn("[Collect] iTunes 조회 실패 - query={}, error={}", searchQuery, e.getMessage());
+            log.warn("[Collect] iTunes 조회 실패 - query={}, error={}",
+                    searchQuery, e.getMessage());
             return null;
         }
     }
