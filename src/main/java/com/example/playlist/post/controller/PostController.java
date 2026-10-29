@@ -33,7 +33,7 @@ public class PostController {
                 .body(SuccessResponse.of(PostSuccessCode.POST_CREATED, response));
     }
 
-    /** 내 문의 상세 조회 */
+    /** 내 문의 상세 조d회 */
     @GetMapping("/posts/{id}")
     public ResponseEntity<SuccessResponse<PostResponse>> getPostDetail(
             @PathVariable Long id,
