@@ -21,7 +21,7 @@ public class AdminStatsController {
 
     @Operation(
             summary = "[Admin] 일별 방문자 수 & AI 호출 횟수 조회",
-            description = "오늘부터 days일 전까지의 방문자 수(유니크 IP)와 AI 추천 호출 횟수를 반환합니다."
+            description = "오늘부터 days일 전까지의 방문자 수(유니크 IP)와 AI 추천 호출 횟수를 반환합니다.."
     )
     @GetMapping("/visitors")
     public ResponseEntity<List<DailyStatsResponse>> getStats(
